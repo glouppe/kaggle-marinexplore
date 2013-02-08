@@ -39,6 +39,26 @@ def load_training_data(file_labels, dir_aiff):
     return np.array(X, dtype=np.float32), np.array(y, dtype=np.int)
 
 
+def load_test_data(dir_aiff, n=54503):
+    X = []
+
+    for i in xrange(1, n+1):
+        filename = "test%d.aiff" % i
+        X.append(load_aiff(os.path.join(dir_aiff, filename)))
+
+    return np.array(X, dtype=np.float32)
+
+
 if __name__ == "__main__":
-    X, y = load_training_data("data/train.csv", "data/train")
-    print X, y
+    X_train, y_train = load_training_data("data/train.csv", "data/train")
+    X_test = load_test_data("data/test")
+
+    # Save for later as numpy arrays
+    fd = open("data/train.npz", "wb")
+    np.savez(fd, X_train=X_train, y_train=y_train)
+    fd.close()
+
+    fd = open("data/test.npz", "wb")
+    np.savez(fd, X_test=X_test)
+    fd.close()
+
