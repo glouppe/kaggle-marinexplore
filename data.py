@@ -39,6 +39,6 @@ def load_training_data(file_labels, dir_aiff):
     return np.array(X, dtype=np.float32), np.array(y, dtype=np.int)
 
 
-
-X, y = load_training_data("data/train.csv", "data/train")
-print X, y
+if __name__ == "__main__":
+    X, y = load_training_data("data/train.csv", "data/train")
+    print X, y
