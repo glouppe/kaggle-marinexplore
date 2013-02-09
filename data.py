@@ -18,9 +18,7 @@ def load_aiff(filename):
     fd.close()
 
     # Convert bytes into Numpy array
-    types = {2:'h', 4:'i', 8:'l'}
-    fmt = "<%d%s" % (n_frames * n_channels, types[sample_width])
-    samples = np.asarray(struct.unpack(fmt, data), np.float32)
+    samples = np.fromstring(data, np.short).byteswap()
 
     return samples
 
