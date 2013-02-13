@@ -98,19 +98,15 @@ def load_test_data(dir_aiff, n=54503):
 
 
 if __name__ == "__main__":
-    print load_aiff("data/train/train1.aiff")
+    X_train, y_train = load_training_data("data/train.csv", "data/train")
+    X_test = load_test_data("data/test")
 
-    extract_features(load_aiff("data/train/train1.aiff"))
+    # Save for later as numpy arrays
+    fd = open("data/train.npz", "wb")
+    np.savez(fd, X_train=X_train, y_train=y_train)
+    fd.close()
 
-    # X_train, y_train = load_training_data("data/train.csv", "data/train")
-    # X_test = load_test_data("data/test")
-
-    # # Save for later as numpy arrays
-    # fd = open("data/train.npz", "wb")
-    # np.savez(fd, X_train=X_train, y_train=y_train)
-    # fd.close()
-
-    # fd = open("data/test.npz", "wb")
-    # np.savez(fd, X_test=X_test)
-    # fd.close()
+    fd = open("data/test.npz", "wb")
+    np.savez(fd, X_test=X_test)
+    fd.close()
 
