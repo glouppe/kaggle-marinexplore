@@ -17,36 +17,37 @@ X_train_yaafe = data["X_train_yaafe"]
 # Transforming data
 print "Transforming data..."
 fft = abs(np.fft.fft(X_train))
-X_train = np.hstack((X_train, fft, X_train_yaafe))
+X_train = np.hstack((normalize(X_train), fft, X_train_yaafe))
 
 # Training
 print "Training..."
 clf = ExtraTreesClassifier(n_estimators=500, min_samples_split=10, max_features=1000, n_jobs=4)
-params = {"max_features": [500, 1000, 2000],
-          "min_samples_split": [10, 50, 100]}
+clf.fit(X_train, y_train)
 
-grid = GridSearchCV(clf, params, cv=ShuffleSplit(n=len(X_train), test_size=0.666), scoring="roc_auc", verbose=3)
-grid.fit(X_train, y_train)
+# params = {"max_features": [500, 1000, 2000],
+#           "min_samples_split": [10, 50, 100]}
 
-print grid.grid_scores_
-print grid.best_estimator_
+# grid = GridSearchCV(clf, params, cv=ShuffleSplit(n=len(X_train), test_size=0.666), scoring="roc_auc", verbose=3)
+# grid.fit(X_train, y_train)
 
-# # Predictions
-# del X_train
-# del X_train_yaafe
+# print grid.grid_scores_
+# print grid.best_estimator_
 
-# print "Predicting..."
-# data = np.load("data/test.npz")
-# X_test = data["X_test"]
-# data = np.load("data/test_yaafe.npz")
-# X_test_yaafe = data["X_test_yaafe"]
+# Predictions
+del X_train
+del X_train_yaafe
 
-# X_test = normalize(X_test)
-# fft = abs(np.fft.fft(X_test))
-# X_test = np.hstack((X_test, X_test_yaafe, fft))
+print "Predicting..."
+data = np.load("data/test.npz")
+X_test = data["X_test"]
+data = np.load("data/test_yaafe.npz")
+X_test_yaafe = data["X_test_yaafe"]
 
-# y_proba = clf.predict_proba(X_test)
-# np.savetxt("et3.txt", y_proba[:, 1])
+fft = abs(np.fft.fft(X_test))
+X_test = np.hstack((normalize(X_test), fft, X_test_yaafe))
 
-# # Variable importances
-# np.savetxt("et-var.txt", clf.feature_importances_)
+y_proba = clf.predict_proba(X_test)
+np.savetxt("et3.txt", y_proba[:, 1])
+
+# Variable importances
+np.savetxt("et-var.txt", clf.feature_importances_)

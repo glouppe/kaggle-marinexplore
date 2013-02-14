@@ -16,9 +16,8 @@ X_train_yaafe = data["X_train_yaafe"]
 
 # Transforming data
 print "Transforming data..."
-X_train = normalize(X_train)
-fft = np.fft.fft(X_train)
-X_train = np.hstack((X_train, X_train_yaafe, fft.real, fft.imag))
+fft = abs(np.fft.fft(X_train))
+X_train = np.hstack((normalize(X_train), fft, X_train_yaafe))
 
 # Training
 print "Training..."
@@ -32,9 +31,8 @@ X_test = data["X_test"]
 data = np.load("data/test_yaafe.npz")
 X_test_yaafe = data["X_test_yaafe"]
 
-X_test = normalize(X_test)
-fft = np.fft.fft(X_test)
-X_test = np.hstack((X_test, X_test_yaafe, fft.real, fft.imag))
+fft = abs(np.fft.fft(X_test))
+X_test = np.hstack((normalize(X_test), fft, X_test_yaafe))
 
 y_proba = clf.predict_proba(X_test)
 np.savetxt("adaboost5.txt", y_proba[:, 1])

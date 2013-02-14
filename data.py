@@ -23,6 +23,30 @@ def load_aiff(filename):
     return samples
 
 
+def load_training_data(file_labels, dir_aiff):
+    X = []
+    y = []
+
+    fd_labels = open(file_labels, "r")
+    for line in fd_labels:
+        filename, label = line.strip().split(",")
+        X.append(load_aiff(os.path.join(dir_aiff, filename)))
+        y.append(int(label))
+    fd_labels.close()
+
+    return np.array(X, dtype=np.float32), np.array(y, dtype=np.int)
+
+
+def load_test_data(dir_aiff, n=54503):
+    X = []
+
+    for i in xrange(1, n+1):
+        filename = "test%d.aiff" % i
+        X.append(load_aiff(os.path.join(dir_aiff, filename)))
+
+    return np.array(X, dtype=np.float32)
+
+
 def yaafe_features(samples):
     from yaafelib import FeaturePlan, Engine
 
@@ -71,30 +95,6 @@ def yaafe_features(samples):
         all_features.append(features)
 
     return np.array(all_features)
-
-
-def load_training_data(file_labels, dir_aiff):
-    X = []
-    y = []
-
-    fd_labels = open(file_labels, "r")
-    for line in fd_labels:
-        filename, label = line.strip().split(",")
-        X.append(load_aiff(os.path.join(dir_aiff, filename)))
-        y.append(int(label))
-    fd_labels.close()
-
-    return np.array(X, dtype=np.float32), np.array(y, dtype=np.int)
-
-
-def load_test_data(dir_aiff, n=54503):
-    X = []
-
-    for i in xrange(1, n+1):
-        filename = "test%d.aiff" % i
-        X.append(load_aiff(os.path.join(dir_aiff, filename)))
-
-    return np.array(X, dtype=np.float32)
 
 
 if __name__ == "__main__":
