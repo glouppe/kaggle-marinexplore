@@ -68,6 +68,24 @@ _y = y
 scores = cross_val_score(clf, _X, _y, scoring="roc_auc", cv=cv)
 print "spectrogram =", scores.mean()
 
+# Spectrogram, lower than N hz
+from matplotlib.mlab import specgram
+
+for lower_bound in [50, 100, 200, 300, 400, 500, 1000]:
+    spectrogram = []
+
+    for X_i in X:
+        s = specgram(X_i)
+        content = s[0]
+        freqs = s[1]
+        spectrogram.append(content[freqs <= lower_bound].flatten())
+
+    _X = np.array(spectrogram)
+    _y = y
+
+    scores = cross_val_score(clf, _X, _y, scoring="roc_auc", cv=cv)
+    print "spectrogram[< %d Hz] =" % lower_bound, scores.mean()
+
 # Random projection
 from sklearn.random_projection import GaussianRandomProjection
 from sklearn.random_projection import SparseRandomProjection
