@@ -11,9 +11,9 @@ data = np.load("data/train-subsample.npz")
 X = data["X_train"]
 y = data["y_train"]
 
-clf = ExtraTreesClassifier(n_estimators=100, max_features=None, n_jobs=1)
+clf = ExtraTreesClassifier(n_estimators=1, max_features=None, n_jobs=1)
 # clf = SGDClassifier()
-cv = 5
+cv = 2
 
 
 # Test the goodness of features
@@ -59,7 +59,7 @@ from matplotlib.mlab import specgram
 spectrogram = []
 
 for X_i in X:
-    s = specgram(X_i)
+    s = specgram(X_i, Fs=2000)
     spectrogram.append(s[0].flatten())
 
 _X = np.array(spectrogram)
@@ -75,7 +75,7 @@ for lower_bound in [50, 100, 200, 300, 400, 500, 1000]:
     spectrogram = []
 
     for X_i in X:
-        s = specgram(X_i)
+        s = specgram(X_i, Fs=2000)
         content = s[0]
         freqs = s[1]
         spectrogram.append(content[freqs <= lower_bound].flatten())
