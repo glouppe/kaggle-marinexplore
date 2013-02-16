@@ -60,7 +60,11 @@ def spectrogram_stats(X, upper=None):
         if upper is not None:
             content = content[freqs < upper]
 
-        _X.append(np.hstack((content.min(axis=1), content.max(axis=1), content.mean(axis=1), np.median(content, axis=1))))
+        _X.append(np.hstack((content.min(axis=1),
+                             content.max(axis=1),
+                             content.mean(axis=1),
+                             content.var(axis=1),
+                             np.median(content, axis=1))))
 
     return np.array(_X)
 
