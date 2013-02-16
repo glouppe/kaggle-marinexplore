@@ -29,6 +29,8 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
                  clip=1.0, dtype=np.float32):
         self.pad_to = pad_to
         self.NFFT = NFFT
+        if noverlap < 1:
+            noverlap = int(NFFT * noverlap)
         self.noverlap = noverlap
         self.clip = clip
         self.dtype = dtype
