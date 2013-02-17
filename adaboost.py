@@ -2,6 +2,7 @@ import numpy as np
 
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.preprocessing import normalize
+from features import spectrogram, spectrogram_stats
 
 # Loading data
 print "Loading data..."
@@ -11,8 +12,7 @@ y_train = data["y_train"]
 
 # Transforming data
 print "Transforming data..."
-fft = abs(np.fft.fft(X_train))
-X_train = np.hstack((normalize(X_train), fft))
+X_train = np.hstack((spectrogram(X_train, upper=500), spectrogram_stats(X_train, upper=500)))
 
 # Training
 print "Training..."
@@ -23,9 +23,7 @@ clf.fit(X_train, y_train)
 print "Predicting..."
 data = np.load("data/test.npz")
 X_test = data["X_test"]
-
-fft = abs(np.fft.fft(X_test))
-X_test = np.hstack((normalize(X_test), fft))
+X_test = np.hstack((spectrogram(X_test, upper=500), spectrogram_stats(X_test, upper=500)))
 
 y_proba = clf.predict_proba(X_test)
-np.savetxt("adaboost5.txt", y_proba[:, 1])
+np.savetxt("adaboost7.txt", y_proba[:, 1])
