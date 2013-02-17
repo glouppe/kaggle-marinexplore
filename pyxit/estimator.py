@@ -12,7 +12,8 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.externals.joblib import Parallel, delayed, cpu_count
 from sklearn.utils import check_random_state
 
-from _estimator import leaf_transform
+from features import spectrogram, spectrogram_stats
+from _estimator import leaf_transform, inplace_csr_column_scale_max
 
 MAX_INT = np.iinfo(np.int32).max
 
@@ -20,10 +21,10 @@ MAX_INT = np.iinfo(np.int32).max
 def _random_window(clip, size, random_state=None):
     random_state = check_random_state(random_state)
 
-    w = np.zeros(2 * size)
     start = random_state.randint(0, len(clip) - size)
-    w[:size] = clip[start:start+size]
-    w[size:] = abs(np.fft.fft(w[:size]))
+    clip = clip[start:start+size].reshape(1, size)
+    w = np.hstack((spectrogram(clip, upper=500), spectrogram_stats(clip, upper=500)))
+    w = w.flatten()
 
     return w
 
@@ -52,7 +53,7 @@ def _parallel_make_subwindows(X, y, dtype, n_subwindows, size, seed):
     random_state = check_random_state(seed)
 
     size = int(size * X.shape[1])
-    _X = np.zeros((len(X) * n_subwindows, 2 * size), dtype=dtype)
+    _X = np.zeros((len(X) * n_subwindows, 384+320), dtype=dtype)
     _y = np.zeros((len(X) * n_subwindows), dtype=np.int32)
 
     i = 0
@@ -118,6 +119,9 @@ class PyxitClassifier(BaseEstimator, ClassifierMixin):
         return mask_t
 
     def fit(self, X, y, _X=None, _y=None):
+        # Reset max
+        self.maxs = None
+
         # Collect some data
         self.classes_ = np.unique(y)
         self.n_classes_ = len(self.classes_)
@@ -167,7 +171,7 @@ class PyxitClassifier(BaseEstimator, ClassifierMixin):
 
         return y
 
-    def transform(self, X, _X=None):
+    def transform(self, X, _X=None, reset=False):
         # Predict proba
         if self.verbose > 0:
             print "[estimator.PyxitClassifier.transform] Transforming into leaf features"
@@ -181,6 +185,10 @@ class PyxitClassifier(BaseEstimator, ClassifierMixin):
         row, col, data, node_count = leaf_transform([tree.tree_ for tree in self.base_estimator.estimators_], _X, X.shape[0], self.n_subwindows)
         __X = csr_matrix((data, (row, col)), shape=(X.shape[0], node_count), dtype=np.float)
 
-        # TODO: Scale features from [0, max] to [0, 1]
+        # Scale features from [0, max] to [0, 1]
+        if reset:
+            self.maxs = None
+
+        __X, self.maxs = inplace_csr_column_scale_max(__X, self.maxs)
 
         return __X

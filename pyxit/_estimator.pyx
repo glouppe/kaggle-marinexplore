@@ -51,3 +51,40 @@ def leaf_transform(trees, np.ndarray[np.float32_t, ndim=2] _X, int n_samples, in
         offset_tree += tree.node_count
 
     return row, col, data, offset_tree
+
+
+ctypedef np.float64_t DOUBLE
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def inplace_csr_column_scale_max(X, np.ndarray[DOUBLE, ndim=1] maxs=None):
+    cdef unsigned int n_samples = X.shape[0]
+    cdef unsigned int n_features = X.shape[1]
+
+    cdef np.ndarray[DOUBLE, ndim=1] X_data = X.data
+    cdef np.ndarray[int, ndim=1] X_indices = X.indices
+    cdef np.ndarray[int, ndim=1] X_indptr = X.indptr
+
+    cdef unsigned int i
+    cdef unsigned int j
+    cdef unsigned int ind
+
+    if maxs is None:
+        maxs = np.zeros(n_features, dtype=X.dtype)
+
+        for i in xrange(n_samples):
+            for j in xrange(X_indptr[i], X_indptr[i + 1]):
+                ind = X_indices[j]
+
+                if X_data[j] > maxs[ind]:
+                    maxs[ind] = X_data[j]
+
+    for i in xrange(n_samples):
+        for j in xrange(X_indptr[i], X_indptr[i + 1]):
+            ind = X_indices[j]
+
+            if maxs[ind] > 0.0:
+                X_data[j] /= maxs[ind]
+
+    return X, maxs
