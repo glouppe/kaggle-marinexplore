@@ -1,6 +1,9 @@
 import numpy as np
 
+from functools import partial
+
 from matplotlib.mlab import specgram
+from scipy.stats import skew
 
 from sklearn.base import BaseEstimator
 from sklearn.base import TransformerMixin
@@ -84,6 +87,9 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
 
 class FlattenTransformer(BaseEstimator, TransformerMixin):
 
+    def __init__(self, scale=1.0):
+        self.scale = scale
+
     def fit(self, X, y=None, **fit_args):
         return self
 
@@ -91,6 +97,8 @@ class FlattenTransformer(BaseEstimator, TransformerMixin):
         out = np.empty((X.shape[0], X.shape[1] * X.shape[2]), dtype=np.float32)
         for i, X_i in enumerate(X):
             out[i, :] = X_i.flatten()
+
+        out *= self.scale
         return out
 
 
@@ -101,25 +109,29 @@ class SpectrogramStatsTransformer(BaseEstimator, TransformerMixin):
     ---------
 
     """
-    def __init__(self):
+    def __init__(self, axis=1):
         def percentile(a, axis=0, p=50):
             return np.percentile(a, p, axis=axis)
 
-        self.stats = [np.min, np.max, np.mean, np.var, np.median,
-#                      partial(percentile, p=25), partial(percentile, p=75),
-#                      partial(percentile, p=10), partial(percentile, p=90),
+        self.stats = [np.min, np.max,
+                      np.mean, np.var,
+                      np.median,
                       ]
+        self.axis = axis
 
     def fit(self, X, y=None, **fit_args):
         return self
 
     def transform(self, X):
         n_stats = len(self.stats)
-        n_freqs = X.shape[1]
-        out = np.empty((X.shape[0], n_stats * n_freqs), dtype=np.float32)
+        if self.axis == 0:
+            n_bins = X.shape[2]
+        elif self.axis == 1:
+            n_bins = X.shape[1]
+        out = np.empty((X.shape[0], n_stats * n_bins), dtype=np.float32)
         for i in xrange(X.shape[0]):
             X_i = X[i]
             for j, stat in enumerate(self.stats):
-                vals = stat(X_i, axis=1)
-                out[i, n_freqs * j: n_freqs * (j + 1)] = vals
+                vals = stat(X_i, axis=self.axis)
+                out[i, n_bins * j: n_bins * (j + 1)] = vals
         return out
