@@ -27,7 +27,7 @@ y = data["y_train"]
 
 # optimal C for raw w/o scaling is 0.00001
 # optimal C for stats w/o scaling is 0.00001
-clf = RankSVM(C=0.00000001, loss='l1', dual=True)
+clf = LinearSVC(C=0.00001, loss='l1', dual=True)
 ## clf = Pipeline(steps=[('scale', StandardScaler()),
 ##                       ('svm', clf)])
 st = SpectrogramTransformer(NFFT=256, clip=500, noverlap=0.6, dtype=np.float64,
@@ -35,7 +35,7 @@ st = SpectrogramTransformer(NFFT=256, clip=500, noverlap=0.6, dtype=np.float64,
 X = st.fit_transform(X)
 
 tf = FeatureUnion([
-    ('spec', FlattenTransformer(scale=10.)),
+    ('spec', FlattenTransformer(scale=1.0)),
     ('sst1', SpectrogramStatsTransformer(axis=1)),
     ('sst0', SpectrogramStatsTransformer(axis=0)),
     ])
@@ -44,7 +44,7 @@ X = tf.fit_transform(X)
 
 print X.shape
 print clf
-scores = cross_val_score(clf, X, y, scoring="roc_auc", cv=5)
+scores = cross_val_score(clf, X, y, scoring="roc_auc", cv=5, n_jobs=3)
 print("spectrogram: %.5f (%.5f)" % (scores.mean(), scores.std()))
 
 ## print "done"
