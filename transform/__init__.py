@@ -31,7 +31,8 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
     """
 
     def __init__(self, pad_to=None, NFFT=256, noverlap=200,
-                 clip=1000.0, dtype=np.float32, whiten=None):
+                 clip=1000.0, dtype=np.float32, whiten=None,
+                 log=True):
         self.pad_to = pad_to
         self.NFFT = NFFT
         if noverlap < 1:
@@ -40,6 +41,7 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
         self.clip = clip
         self.dtype = dtype
         self.whiten = whiten
+        self.log = log
 
     def fit(self, X, y=None, **fit_args):
         return self
@@ -50,7 +52,8 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
             s = specgram(X_i, NFFT=self.NFFT, Fs=2000, pad_to=self.pad_to,
                          noverlap=self.noverlap)
             Pxx = s[0]
-            Pxx = 10. * np.log10(Pxx)
+            if self.log:
+                Pxx = 10. * np.log10(Pxx)
             #Pxx = np.flipud(Pxx)
             if self.clip < 1000.0:
                 freqs = s[1]
