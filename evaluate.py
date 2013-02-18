@@ -5,9 +5,13 @@ from sklearn.svm import LinearSVC, SVC
 from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.decomposition import PCA
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.preprocessing import StandardScaler
+
+from transform import FlattenTransformer
 from transform import SpectrogramTransformer
+from transform import SpectrogramStatsTransformer
+from ranking import RankSVM
 
 from sklearn.grid_search import GridSearchCV
 
@@ -21,14 +25,22 @@ y = data["y_train"]
 ## clf = GradientBoostingClassifier(n_estimators=500, max_depth=4,
 ##                                  min_samples_leaf=7, learning_rate=0.2)
 
-clf = clf = LinearSVC(C=0.001, loss='l1', dual=True)
-clf = Pipeline(steps=[('scale', StandardScaler()),
-                      ('sgd', clf)])
-st = SpectrogramTransformer(NFFT=256, clip=1000, noverlap=0.6, dtype=np.float64,
-                            whiten=None, log=True)
+clf = LinearSVC(C=0.00001, loss='l1', dual=True)
+## clf = Pipeline(steps=[('scale', StandardScaler()),
+##                       ('svm', clf)])
+st = SpectrogramTransformer(NFFT=256, clip=500, noverlap=0.6, dtype=np.float64,
+                            whiten=None, log=True, flatten=False)
 X = st.fit_transform(X)
 
+tf = FeatureUnion([
+    ('spec', FlattenTransformer()),
+    ('sst', SpectrogramStatsTransformer()),
+    ])
+
+X = tf.fit_transform(X)
+
 print X.shape
+print clf
 scores = cross_val_score(clf, X, y, scoring="roc_auc", cv=5)
 print("spectrogram: %.5f (%.5f)" % (scores.mean(), scores.std()))
 

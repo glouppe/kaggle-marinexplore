@@ -6,6 +6,8 @@ from sklearn.base import BaseEstimator
 from sklearn.base import TransformerMixin
 from sklearn.decomposition import PCA
 
+import IPython
+
 
 class SpectrogramTransformer(BaseEstimator, TransformerMixin):
     """Creates a flattened spectrogram representation of X.
@@ -32,7 +34,7 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
 
     def __init__(self, pad_to=None, NFFT=256, noverlap=200,
                  clip=1000.0, dtype=np.float32, whiten=None,
-                 log=True):
+                 log=True, flatten=True):
         self.pad_to = pad_to
         self.NFFT = NFFT
         if noverlap < 1:
@@ -42,6 +44,7 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
         self.dtype = dtype
         self.whiten = whiten
         self.log = log
+        self.flatten = flatten
 
     def fit(self, X, y=None, **fit_args):
         return self
@@ -65,43 +68,58 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
                 Pxx = pca.fit_transform(Pxx)
 
             if X_prime is None:
-                X_prime = np.empty((X.shape[0], Pxx.size), self.dtype)
+                if self.flatten:
+                    X_prime = np.empty((X.shape[0], Pxx.size), self.dtype)
+                else:
+                    X_prime = np.empty((X.shape[0], Pxx.shape[0],
+                                        Pxx.shape[1]), self.dtype)
 
-            X_prime[i, :] = Pxx.flatten()
+            if self.flatten:
+                Pxx = Pxx.flatten()
+                X_prime[i, :] = Pxx
+            else:
+                X_prime[i, :, :] = Pxx
         return X_prime
 
 
-## class SpectrogramStatsTransformer(BaseEstimator, TransformerMixin):
-##     """Creates summary statistics from the spectrogram representation of X.
+class FlattenTransformer(BaseEstimator, TransformerMixin):
 
-##     Arguments
-##     ---------
+    def fit(self, X, y=None, **fit_args):
+        return self
 
-##     """
+    def transform(self, X):
+        out = np.empty((X.shape[0], X.shape[1] * X.shape[2]), dtype=np.float32)
+        for i, X_i in enumerate(X):
+            out[i, :] = X_i.flatten()
+        return out
 
-##     def fit(self, X, y=None, **fit_args):
-##         return self
 
-##     def transform(self, X):
+class SpectrogramStatsTransformer(BaseEstimator, TransformerMixin):
+    """Creates summary statistics from the spectrogram representation of X.
 
-##         return X_prime
+    Arguments
+    ---------
 
-## # Summary statistics of the spectrogram
-## def spectrogram_stats(X, upper=None):
-##     _X = []
+    """
+    def __init__(self):
+        def percentile(a, axis=0, p=50):
+            return np.percentile(a, p, axis=axis)
 
-##     for X_i in X:
-##         s = specgram(X_i, Fs=2000)
-##         content = s[0]
-##         freqs = s[1]
+        self.stats = [np.min, np.max, np.mean, np.var, np.median,
+#                      partial(percentile, p=25), partial(percentile, p=75),
+#                      partial(percentile, p=10), partial(percentile, p=90),
+                      ]
 
-##         if upper is not None:
-##             content = content[freqs < upper]
+    def fit(self, X, y=None, **fit_args):
+        return self
 
-##         _X.append(np.hstack((content.min(axis=1),
-##                              content.max(axis=1),
-##                              content.mean(axis=1),
-##                              content.var(axis=1),
-##                              np.median(content, axis=1))))
-
-##     return np.array(_X)
+    def transform(self, X):
+        n_stats = len(self.stats)
+        n_freqs = X.shape[1]
+        out = np.empty((X.shape[0], n_stats * n_freqs), dtype=np.float32)
+        for i in xrange(X.shape[0]):
+            X_i = X[i]
+            for j, stat in enumerate(self.stats):
+                vals = stat(X_i, axis=1)
+                out[i, n_freqs * j: n_freqs * (j + 1)] = vals
+        return out
