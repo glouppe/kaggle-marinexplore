@@ -12,7 +12,6 @@ from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.externals.joblib import Parallel, delayed, cpu_count
 from sklearn.utils import check_random_state
 
-from features import spectrogram, spectrogram_stats
 from _estimator import leaf_transform, inplace_csr_column_scale_max
 
 MAX_INT = np.iinfo(np.int32).max
@@ -22,11 +21,11 @@ def _random_window(clip, size, random_state=None):
     random_state = check_random_state(random_state)
 
     start = random_state.randint(0, len(clip) - size)
-    clip = clip[start:start+size].reshape(1, size)
-    w = np.hstack((spectrogram(clip, upper=500), spectrogram_stats(clip, upper=500)))
-    w = w.flatten()
+    clip = clip[start:start+size]
 
-    return w
+    # todo: transform data
+
+    return clip
 
 
 def _partition_clips(n_jobs, n_clips):
@@ -53,7 +52,7 @@ def _parallel_make_subwindows(X, y, dtype, n_subwindows, size, seed):
     random_state = check_random_state(seed)
 
     size = int(size * X.shape[1])
-    _X = np.zeros((len(X) * n_subwindows, 384+320), dtype=dtype)
+    _X = np.zeros((len(X) * n_subwindows, size), dtype=dtype)
     _y = np.zeros((len(X) * n_subwindows), dtype=np.int32)
 
     i = 0
