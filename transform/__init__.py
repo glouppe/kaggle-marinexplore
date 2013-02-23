@@ -25,8 +25,10 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
     noverlap : int
         overlap of sliding windows - must be smaller than NFFT.
         The higher the smoother but the more comp intensive.
-    clip : float
-        Clip frequencies higher than ``clip``.
+    clip_upper : float
+        Clip frequencies higher than ``clip_upper``.
+    clip_lower : float
+        Clip frequencies lower than ``clip_lower``.
     dtype : np.dtype
         The dtype of the resulting array.
     whiten : int or None
@@ -36,14 +38,15 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
     """
 
     def __init__(self, pad_to=None, NFFT=256, noverlap=200,
-                 clip=1000.0, dtype=np.float32, whiten=None,
-                 log=True, flatten=True):
+                 clip_upper=1000.0, clip_lower=0.0, dtype=np.float32,
+                 whiten=None, log=True, flatten=True):
         self.pad_to = pad_to
         self.NFFT = NFFT
         if noverlap < 1:
             noverlap = int(NFFT * noverlap)
         self.noverlap = noverlap
-        self.clip = clip
+        self.clip_upper = clip_upper
+        self.clip_lower = clip_lower
         self.dtype = dtype
         self.whiten = whiten
         self.log = log
@@ -61,10 +64,14 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
             if self.log:
                 Pxx = 10. * np.log10(Pxx)
             #Pxx = np.flipud(Pxx)
-            if self.clip < 1000.0:
+            if self.clip_upper < 1000.0:
                 freqs = s[1]
-                n_fx = freqs.searchsorted(self.clip, side='right')
+                n_fx = freqs.searchsorted(self.clip_upper, side='right')
                 Pxx = Pxx[:n_fx]
+            if self.clip_lower > 0.0:
+                freqs = s[1]
+                n_fx = freqs.searchsorted(self.clip_lower, side='left')
+                Pxx = Pxx[n_fx:]
 
             if self.whiten:
                 pca = PCA(n_components=self.whiten, whiten=True)
