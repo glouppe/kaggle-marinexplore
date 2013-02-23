@@ -28,7 +28,10 @@ def load_training_data(file_labels, dir_aiff):
     y = []
 
     fd_labels = open(file_labels, "r")
-    for line in fd_labels:
+    lines = iter(fd_labels)
+    # skip header
+    next(lines)
+    for line in lines:
         filename, label = line.strip().split(",")
         X.append(load_aiff(os.path.join(dir_aiff, filename)))
         y.append(int(label))
@@ -59,4 +62,3 @@ if __name__ == "__main__":
     fd = open("data/test.npz", "wb")
     np.savez(fd, X_test=X_test)
     fd.close()
-
