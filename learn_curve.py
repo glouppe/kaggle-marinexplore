@@ -96,9 +96,16 @@ def lc_fit(i, j, n_samples, X_train, y_train, X_test, y_test, clf,
     if len(np.unique(y_train)) != 2:
         raise ValueError('Split has just one class')
     clf.fit(X_train, y_train)
+
     # FIXME use either predict or decision_function based on score_func
-    train_score = score_func(y_train, clf.decision_function(X_train))
-    test_score = score_func(y_test, clf.decision_function(X_test))
+    pred_func = clf.predict
+    if hasattr(clf, 'predict_proba'):
+        pred_func = lambda X: clf.predict_proba(X)[:, 1].ravel()
+    elif hasattr(clf, 'decision_function'):
+        pred_func = clf.decision_function
+
+    train_score = score_func(y_train, pred_func(X_train))
+    test_score = score_func(y_test, pred_func(X_test))
     return (i, j, n_samples, train_score, test_score)
 
 
@@ -135,13 +142,13 @@ if __name__ == '__main__':
     ##                                  max_depth=3, max_features=None,
     ##                                  min_samples_leaf=2,
     ##                                  n_estimators=250, random_state=13)
-    clf = ExtraTreesClassifier(n_estimators=100, min_samples_split=3,
+    clf = ExtraTreesClassifier(n_estimators=50, min_samples_split=3,
                                max_features=None)
 
     def inv_auc_score(y_true, y_scores):
         return 1.0 - metrics.auc_score(y_true, y_scores)
 
-    lc = LearningCurve(clf, sample_bins=5, num_repetitions=1,
+    lc = LearningCurve(clf, sample_bins=5, num_repetitions=3,
                        score_function=inv_auc_score,
                        random_state=13, n_jobs=3, verbose=11)
 
