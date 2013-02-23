@@ -1,3 +1,6 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import numpy as np
 
 from functools import partial
@@ -86,6 +89,7 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
 
 
 class FlattenTransformer(BaseEstimator, TransformerMixin):
+    """Flattens X from 3d to 2d."""
 
     def __init__(self, scale=1.0):
         self.scale = scale
@@ -102,21 +106,14 @@ class FlattenTransformer(BaseEstimator, TransformerMixin):
         return out
 
 
-class SpectrogramStatsTransformer(BaseEstimator, TransformerMixin):
-    """Creates summary statistics from the spectrogram representation of X.
+class StatsTransformer(BaseEstimator, TransformerMixin):
+    """Creates summary statistics from X."""
 
-    Arguments
-    ---------
-
-    """
     def __init__(self, axis=1):
         def percentile(a, axis=0, p=50):
             return np.percentile(a, p, axis=axis)
 
-        self.stats = [np.min, np.max,
-                      np.mean, np.var,
-                      np.median,
-                      ]
+        self.stats = [np.min, np.max, np.mean, np.var, np.median]
         self.axis = axis
 
     def fit(self, X, y=None, **fit_args):

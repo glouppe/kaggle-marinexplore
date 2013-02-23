@@ -1,3 +1,6 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import numpy as np
 
 from sklearn.base import clone
@@ -111,10 +114,9 @@ if __name__ == '__main__':
 
     from transform import FlattenTransformer
     from transform import SpectrogramTransformer
-    from transform import SpectrogramStatsTransformer
+    from transform import StatsTransformer
 
     data = np.load("data/train.npz")
-
     X = data["X_train"]
     y = data["y_train"]
     #X = X.astype(np.float64)
@@ -125,8 +127,8 @@ if __name__ == '__main__':
 
     tf = FeatureUnion([
         ('spec', FlattenTransformer(scale=1.0)),
-        ('sst1', SpectrogramStatsTransformer(axis=1)),
-        ('sst0', SpectrogramStatsTransformer(axis=0)),
+        ('st1', StatsTransformer(axis=1)),
+        ('st0', StatsTransformer(axis=0)),
     ])
     X = tf.fit_transform(X)
 
