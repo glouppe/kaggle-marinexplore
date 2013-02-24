@@ -62,6 +62,20 @@ def build_extratrees(argv):
     return clf
 
 
+def build_randomforest(argv):
+    from sklearn.ensemble import RandomForestClassifier
+
+    parameters = {
+        "n_estimators": int(argv[0]),
+        "max_features": int(argv[1]),
+        "min_samples_split": int(argv[2]),
+    }
+
+    clf = RandomForestClassifier(**parameters)
+
+    return clf
+
+
 def build_gbrt(argv):
     from sklearn.ensemble import GradientBoostingClassifier
 
