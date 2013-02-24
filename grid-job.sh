@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #$ -N whale
-#$ -l h_vmem=4000M
-#$ -l mem_free=4000M
+#$ -l h_vmem=2500M
+#$ -l mem_free=2500M
 #$ -l h_rt=864000
 #$ -S /bin/bash
 #$ -cwd

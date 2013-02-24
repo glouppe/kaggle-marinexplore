@@ -3,12 +3,12 @@
 # Extra-trees
 n_estimators=500
 
-for max_features in 1 100 250 500 1000 2000 3000 3725
+for max_features in 2500 3000 3500 3725
 do
-for min_samples_split in 1
+for min_samples_split in 1 5 10 25 50
 do
 
-echo qsub -o grid/extratrees -e grid/extratrees grid-job.sh extratrees $n_estimators $max_features $min_samples_split
+qsub -o grid/extratrees -e grid/extratrees grid-job.sh extratrees $n_estimators $max_features $min_samples_split
 
 done
 done
