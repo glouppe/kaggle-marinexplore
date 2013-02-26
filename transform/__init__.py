@@ -116,7 +116,7 @@ class SpectrogramStatsTransformer(BaseEstimator, TransformerMixin):
     ---------
 
     """
-    def __init__(self, axis=1):
+    def __init__(self, axis=1, delta=False, delta_delta=False):
         def percentile(a, axis=0, p=50):
             return np.percentile(a, p, axis=axis)
 
@@ -125,6 +125,8 @@ class SpectrogramStatsTransformer(BaseEstimator, TransformerMixin):
                       np.median,
                       ]
         self.axis = axis
+        self.delta = delta
+        self.delta_delta = delta_delta
 
     def fit(self, X, y=None, **fit_args):
         return self
@@ -135,10 +137,28 @@ class SpectrogramStatsTransformer(BaseEstimator, TransformerMixin):
             n_bins = X.shape[2]
         elif self.axis == 1:
             n_bins = X.shape[1]
-        out = np.empty((X.shape[0], n_stats * n_bins), dtype=np.float32)
+
+        if self.delta:
+            n_delta = n_bins - 1
+            n_bins += n_delta
+        if self.delta_delta:
+            n_delta_delta = n_delta - 1
+            n_bins += n_delta_delta
+
+        out = np.empty((X.shape[0], n_stats * n_bins),
+                       dtype=np.float32)
         for i in xrange(X.shape[0]):
             X_i = X[i]
             for j, stat in enumerate(self.stats):
                 vals = stat(X_i, axis=self.axis)
+                if self.delta:
+                    delta = np.diff(vals)
+                    vals = np.r_[vals, delta]
+                if self.delta_delta:
+                    delta_delta = np.diff(delta)
+                    vals = np.r_[vals, delta_delta]
                 out[i, n_bins * j: n_bins * (j + 1)] = vals
         return out
+
+
+StatsTransformer = SpectrogramStatsTransformer
