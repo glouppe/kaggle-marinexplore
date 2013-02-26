@@ -83,7 +83,8 @@ X_train, X_test, y_train, y_test = load_data(full=False)
 
 clf = GradientBoostingClassifier(n_estimators=500, max_depth=5,
                                  learning_rate=0.1, max_features=256,
-                                 min_samples_split=7, verbose=3)
+                                 min_samples_split=7, verbose=3,
+                                 random_state=13)
 
 clf.fit(X_train, y_train)
 if y_test is not None:
