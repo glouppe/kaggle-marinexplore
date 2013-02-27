@@ -45,3 +45,19 @@ done
 done
 done
 
+# DBN
+
+epochs=30
+
+for units in 300
+do
+for learn_rates in 0.014 0.012 0.01 0.008 0.006
+do
+for momentum in 0.17 0.16 0.15 0.14 0.13
+do
+
+qsub -o grid/dbn -e grid/dbn grid-job.sh dbn $units-$units-$units $epochs $learn_rates $momentum
+
+done
+done
+done

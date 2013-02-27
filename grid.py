@@ -110,7 +110,7 @@ def build_dbn(argv):
         "epochs": int(argv[1]),
         "learn_rates": float(argv[2]),
         "momentum": float(argv[3]),
-        "verbose": 1
+        "verbose": 0
     }
 
     clf = DBN(units, **parameters)
