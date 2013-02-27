@@ -4,18 +4,27 @@
 
 from sklearn.base import BaseEstimator, ClassifierMixin
 
-from transform import FlattenTransformer
+
+def _flatten(X, y=None, axis=1):
+    shape = X.shape
+    _X = X.reshape([shape[0] * shape[1]] + list(shape[2:]))
+
+    if y is None:
+        return _X
+
+    else:
+        _y = np.hstack(y for i in range(shape[1]))
+
+        return _X, _y
 
 
 class MultiFrameClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, base_estimator):
-        self.flattener = FlattenTransformer(axis=1)
         self.base_estimator = base_estimator
 
     def fit(self, X, y):
-        self.flattener.fit(X, y)
-        self.n_frames = self.flattener.size         # number of frames per example
-        _X, _y = self.flattener.transform(X, y)
+        self.n_frames = X.shape[1] # expect X to be 3d
+        _X, _y = _flatten(X, y)
         self.base_estimator.fit(_X, _y)
 
         return self
@@ -24,11 +33,13 @@ class MultiFrameClassifier(BaseEstimator, ClassifierMixin):
         return np.argmax(self.predict_proba(X))
 
     def predict_proba(self, X):
-        n_samples = X.shape[0]
-        _X = self.flattener(X)
+        _X = _flatten(X)
         _y = self.base_estimator.predict_proba(X_)
 
-        y = np.zeros((n_samples, _y.shape[1]))
+        n_samples = X.shape[0]
+        n_classes = _y.shape[0]
+
+        y = np.zeros((n_samples, n_classes))
 
         for i in xrange(n_samples):
             y[i] = np.sum(_y[i * self.n_frames:(i + 1) * self.n_frames], axis=0) / self.n_frames
@@ -48,7 +59,7 @@ if __name__ == "__main__":
     y = data["y_train"]
     n_samples = len(y)
 
-    pipe = Pipeline([("spectrogram", SpectrogramTransformer(flatten=False)),
+    pipe = Pipeline([("spectrogram", SpectrogramTransformer(flatten=False, transpose=True)),
                      ("mfc", MultiFrameClassifier(base_estimator=ExtraTreesClassifier(n_estimators=10)))])  # tune the forest with mfc__base_estimator__param
 
     pipe.fit(X, y)

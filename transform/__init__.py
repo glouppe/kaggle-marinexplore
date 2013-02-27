@@ -32,15 +32,11 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
         Clip frequencies higher than ``clip``.
     dtype : np.dtype
         The dtype of the resulting array.
-    whiten : int or None
-        Whether to whiten the spectrogram or not.
-        If whiten is not None its an int holding the number
-        of components.
     """
 
     def __init__(self, pad_to=None, NFFT=256, noverlap=200,
-                 clip=1000.0, dtype=np.float32, whiten=None,
-                 log=True, flatten=True):
+                 clip=1000.0, dtype=np.float32,
+                 log=True, flatten=True, transpose=False):
         self.pad_to = pad_to
         self.NFFT = NFFT
         if noverlap < 1:
@@ -48,30 +44,28 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
         self.noverlap = noverlap
         self.clip = clip
         self.dtype = dtype
-        self.whiten = whiten
         self.log = log
         self.flatten = flatten
+        self.transpose = transpose
 
     def fit(self, X, y=None, **fit_args):
         return self
 
     def transform(self, X):
         X_prime = None
+
         for i, X_i in enumerate(X):
-            s = specgram(X_i, NFFT=self.NFFT, Fs=2000, pad_to=self.pad_to,
-                         noverlap=self.noverlap)
-            Pxx = s[0]
+            Pxx, freqs, _ = specgram(X_i, NFFT=self.NFFT, Fs=2000, pad_to=self.pad_to, noverlap=self.noverlap)
+
             if self.log:
                 Pxx = 10. * np.log10(Pxx)
-            #Pxx = np.flipud(Pxx)
+
             if self.clip < 1000.0:
-                freqs = s[1]
                 n_fx = freqs.searchsorted(self.clip, side='right')
                 Pxx = Pxx[:n_fx]
 
-            if self.whiten:
-                pca = PCA(n_components=self.whiten, whiten=True)
-                Pxx = pca.fit_transform(Pxx)
+            if self.transpose:
+                Pxx = Pxx.T
 
             if X_prime is None:
                 if self.flatten:
@@ -85,38 +79,26 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
                 X_prime[i, :] = Pxx
             else:
                 X_prime[i, :, :] = Pxx
+
         return X_prime
 
 
 class FlattenTransformer(BaseEstimator, TransformerMixin):
-    """Reshape a n-d array of shape into a n-(d-1) array by flattening
-       the given axis into the previous one."""
+    """Flattens X from 3d to 2d."""
 
-    def __init__(self, axis=1):
-        self.axis = axis
+    def __init__(self, scale=1.0):
+        self.scale = scale
 
     def fit(self, X, y=None, **fit_args):
-        self.size = X.shape[self.axis] # size of the flattened axis
-
         return self
 
-    def transform(self, X, y=None):
-        shape = list(X.shape)
-        size = shape.pop(self.axis)
-        shape[self.axis - 1] *= size
+    def transform(self, X):
+        out = np.empty((X.shape[0], X.shape[1] * X.shape[2]), dtype=np.float32)
+        for i, X_i in enumerate(X):
+            out[i, :] = X_i.flatten()
 
-        X_ = X.reshape(shape)
-
-        if y is None:
-            return X_
-
-        # Update y if axis 0 has changed
-        y_ = y
-
-        if X_.shape[0] != X.shape[0]:
-            y_ = np.hstack(y for i in range(size)).flatten()
-
-        return X_, y_
+        out *= self.scale
+        return out
 
 
 class StatsTransformer(BaseEstimator, TransformerMixin):
