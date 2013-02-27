@@ -19,12 +19,18 @@ def _flatten(X, y=None, axis=1):
 
 
 class MultiFrameClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self, base_estimator):
+    def __init__(self, base_estimator, transformer=None):
         self.base_estimator = base_estimator
+        self.transformer = transformer
 
     def fit(self, X, y):
         self.n_frames = X.shape[1] # expect X to be 3d
         _X, _y = _flatten(X, y)
+
+        if self.transformer is not None:
+            self.transformer.fit(_X, _y)
+            _X = self.transformer.transform(_X)
+
         self.base_estimator.fit(_X, _y)
 
         return self
@@ -34,6 +40,10 @@ class MultiFrameClassifier(BaseEstimator, ClassifierMixin):
 
     def predict_proba(self, X):
         _X = _flatten(X)
+
+        if self.transformer is not None:
+            _X = self.transformer.transform(_X)
+
         _y = self.base_estimator.predict_proba(X_)
 
         n_samples = X.shape[0]
@@ -48,6 +58,7 @@ class MultiFrameClassifier(BaseEstimator, ClassifierMixin):
 if __name__ == "__main__":
     import numpy as np
 
+    from sklearn.decomposition import PCA
     from sklearn.ensemble import ExtraTreesClassifier
     from sklearn.pipeline import Pipeline
     from sklearn.metrics.scorer import auc_scorer
@@ -60,6 +71,7 @@ if __name__ == "__main__":
     n_samples = len(y)
 
     pipe = Pipeline([("spectrogram", SpectrogramTransformer(flatten=False, transpose=True)),
-                     ("mfc", MultiFrameClassifier(base_estimator=ExtraTreesClassifier(n_estimators=10)))])  # tune the forest with mfc__base_estimator__param
+                     ("mfc", MultiFrameClassifier(base_estimator=ExtraTreesClassifier(n_estimators=10), # tune the forest with mfc__base_estimator__param
+                                                  transformer=PCA(n_components=40)))])                  # tune PCA with mfc__transformer__param
 
     pipe.fit(X, y)
