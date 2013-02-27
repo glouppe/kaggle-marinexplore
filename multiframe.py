@@ -44,15 +44,17 @@ class MultiFrameClassifier(BaseEstimator, ClassifierMixin):
         if self.transformer is not None:
             _X = self.transformer.transform(_X)
 
-        _y = self.base_estimator.predict_proba(X_)
+        _y = self.base_estimator.predict_proba(_X)
 
         n_samples = X.shape[0]
-        n_classes = _y.shape[0]
+        n_classes = _y.shape[1]
 
         y = np.zeros((n_samples, n_classes))
 
         for i in xrange(n_samples):
             y[i] = np.sum(_y[i * self.n_frames:(i + 1) * self.n_frames], axis=0) / self.n_frames
+
+        return y
 
 
 if __name__ == "__main__":
@@ -61,7 +63,7 @@ if __name__ == "__main__":
     from sklearn.decomposition import PCA
     from sklearn.ensemble import ExtraTreesClassifier
     from sklearn.pipeline import Pipeline
-    from sklearn.metrics.scorer import auc_scorer
+    from sklearn.cross_validation import cross_val_score
 
     from transform import SpectrogramTransformer
 
@@ -72,6 +74,7 @@ if __name__ == "__main__":
 
     pipe = Pipeline([("spectrogram", SpectrogramTransformer(flatten=False, transpose=True)),
                      ("mfc", MultiFrameClassifier(base_estimator=ExtraTreesClassifier(n_estimators=10), # tune the forest with mfc__base_estimator__param
-                                                  transformer=PCA(n_components=40)))])                  # tune PCA with mfc__transformer__param
+                                                  transformer=None))])                                  # tune PCA with mfc__transformer__param
 
-    pipe.fit(X, y)
+    scores = cross_val_score(pipe, X, y, scoring="roc_auc", cv=3)
+    print "%f (+- %f)" % (scores.mean(), scores.std())
