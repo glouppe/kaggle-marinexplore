@@ -89,21 +89,34 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
 
 
 class FlattenTransformer(BaseEstimator, TransformerMixin):
-    """Flattens X from 3d to 2d."""
+    """Reshape a n-d array of shape into a n-(d-1) array by flattening
+       the given axis into the previous one."""
 
-    def __init__(self, scale=1.0):
-        self.scale = scale
+    def __init__(self, axis=1):
+        self.axis = axis
 
     def fit(self, X, y=None, **fit_args):
+        self.size = X.shape[self.axis] # size of the flattened axis
+
         return self
 
-    def transform(self, X):
-        out = np.empty((X.shape[0], X.shape[1] * X.shape[2]), dtype=np.float32)
-        for i, X_i in enumerate(X):
-            out[i, :] = X_i.flatten()
+    def transform(self, X, y=None):
+        shape = list(X.shape)
+        size = shape.pop(self.axis)
+        shape[self.axis - 1] *= size
 
-        out *= self.scale
-        return out
+        X_ = X.reshape(shape)
+
+        if y is None:
+            return X_
+
+        # Update y if axis 0 has changed
+        y_ = y
+
+        if X_.shape[0] != X.shape[0]:
+            y_ = np.hstack(y for i in range(size)).flatten()
+
+        return X_, y_
 
 
 class StatsTransformer(BaseEstimator, TransformerMixin):
