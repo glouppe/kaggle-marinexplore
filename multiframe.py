@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import numpy as np
 
 from sklearn.base import BaseEstimator, ClassifierMixin
 
@@ -72,8 +73,8 @@ if __name__ == "__main__":
     y = data["y_train"]
     n_samples = len(y)
 
-    pipe = Pipeline([("spectrogram", SpectrogramTransformer(flatten=False, transpose=True)),
-                     ("mfc", MultiFrameClassifier(base_estimator=ExtraTreesClassifier(n_estimators=10), # tune the forest with mfc__base_estimator__param
+    pipe = Pipeline([("spectrogram", SpectrogramTransformer(flatten=False, transpose=True, NFFT=512, noverlap=256, clip=500)),
+                     ("mfc", MultiFrameClassifier(base_estimator=ExtraTreesClassifier(n_estimators=50), # tune the forest with mfc__base_estimator__param
                                                   transformer=None))])                                  # tune PCA with mfc__transformer__param
 
     scores = cross_val_score(pipe, X, y, scoring="roc_auc", cv=3)
