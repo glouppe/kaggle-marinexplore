@@ -17,6 +17,8 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
 
     Arguments
     ---------
+    Fs : int
+        The nr. of frames.
     pad_to : int or None
         The number of points to which the data segment is padded when
         performing the FFT. If None same as ``NFFT``.
@@ -37,9 +39,10 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
         of components.
     """
 
-    def __init__(self, pad_to=None, NFFT=256, noverlap=200,
+    def __init__(self, Fs=2000, pad_to=None, NFFT=256, noverlap=200,
                  clip_upper=1000.0, clip_lower=0.0, dtype=np.float32,
                  whiten=None, log=True, flatten=True):
+        self.Fs = Fs
         self.pad_to = pad_to
         self.NFFT = NFFT
         if noverlap < 1:
@@ -58,7 +61,7 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X):
         X_prime = None
         for i, X_i in enumerate(X):
-            s = specgram(X_i, NFFT=self.NFFT, Fs=2000, pad_to=self.pad_to,
+            s = specgram(X_i, NFFT=self.NFFT, Fs=self.Fs, pad_to=self.pad_to,
                          noverlap=self.noverlap)
             Pxx = s[0]
             if self.log:
