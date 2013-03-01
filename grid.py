@@ -16,7 +16,7 @@ from transform import StatsTransformer
 from transform import WhitenerTransformer
 
 
-def load_data(argv):
+def load_data(argv, full=False):
     # data = np.load("data/train.npz")
     # y = data["y_train"]
     # n_samples = len(y)
@@ -44,21 +44,33 @@ def load_data(argv):
 
     # X = np.hstack((X_specs, X_ceps, X_mfcc))
 
-    data = np.load("data/train-subsample.npz")
-    X = data["X_train"]
-    y = data["y_train"]
-    n_samples = len(y)
+    transformer = Pipeline([("spec", SpectrogramTransformer(flatten=False, transpose=True, clip=int(argv[0]))),
+                            ("whiten", WhitenerTransformer(n_components=int(argv[1]))),
+                            ("flatten", FlattenTransformer())])
 
-    p = Pipeline([("spec", SpectrogramTransformer(flatten=False, transpose=True, clip=int(argv[0]))),
-                  ("whiten", WhitenerTransformer(n_components=int(argv[1]))),
-                  ("flatten", FlattenTransformer())])
+    if not full:
+        data = np.load("data/train-subsample.npz")
+        X = data["X_train"]
+        y = data["y_train"]
 
-    p.fit(X, y)
-    X = p.transform(X)
+        transformer.fit(X, y)
+        X = transformer.transform(X)
 
-    # Split into train/test
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5,
-                                                        random_state=42)
+        # Split into train/test
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5,
+                                                            random_state=42)
+
+    else:
+        data = np.load("data/train.npz")
+        X_train = data["X_train"]
+        y_train = data["y_train"]
+
+        transformer.fit(X_train, y_train)
+        X_train = transformer.transform(X_train)
+
+        data = np.load("data/test.npz")
+        X_test = transformer.transform(data["X_test"])
+        y_test = None
 
     return argv[2:], X_train, X_test, y_train, y_test
 
@@ -142,4 +154,11 @@ if __name__ == "__main__":
     clf.fit(X_train, y_train)
 
     # AUC
-    print "AUC =", auc_scorer(clf, X_test, y_test)
+    if y_test is not None:
+        print "AUC =", auc_scorer(clf, X_test, y_test)
+
+    # Save predictions
+    if y_test is None:
+        y_pred = clf.predict_proba(X_test)
+        np.savetxt(argv[-1], y_pred[:, 1])
+
