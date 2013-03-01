@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 
 
-def _flatten(X, y=None, axis=1):
+def _flatten(X, y=None):
     shape = X.shape
     _X = X.reshape([shape[0] * shape[1]] + list(shape[2:]))
 

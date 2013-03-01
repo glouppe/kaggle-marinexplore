@@ -7,12 +7,13 @@ import sys
 from sklearn.cross_validation import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.metrics.scorer import auc_scorer
-from sklearn.pipeline import FeatureUnion
+from sklearn.pipeline import Pipeline, FeatureUnion
 from scipy.io import loadmat
 
 from transform import FlattenTransformer
 from transform import SpectrogramTransformer
 from transform import StatsTransformer
+from transform import WhitenerTransformer
 
 
 def load_data(argv):
@@ -48,14 +49,12 @@ def load_data(argv):
     y = data["y_train"]
     n_samples = len(y)
 
-    s = SpectrogramTransformer(flatten=False, transpose=True, clip=int(argv[0]))
-    X = s.transform(X)
+    p = Pipeline([("spec", SpectrogramTransformer(flatten=False, transpose=True, clip=int(argv[0]))),
+                  ("whiten", WhitenerTransformer(n_components=int(argv[1]))),
+                  ("flatten", FlattenTransformer())])
 
-    from multiframe import _flatten
-    _X, _y = _flatten(X, y)
-    pca = PCA(n_components=int(argv[1])).fit(_X, _y)
-    _X = pca.transform(_X)
-    X = _X.reshape((n_samples, -1))
+    p.fit(X, y)
+    X = p.transform(X)
 
     # Split into train/test
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5,
@@ -117,7 +116,7 @@ def build_dbn(argv, n_features):
         "epochs": int(argv[1]),
         "learn_rates": float(argv[2]),
         "momentum": float(argv[3]),
-        "verbose": 1
+        "verbose": 0
     }
 
     clf = DBN(units, **parameters)
