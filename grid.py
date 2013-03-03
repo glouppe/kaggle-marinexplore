@@ -7,15 +7,16 @@ import sys
 from sklearn.cross_validation import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.metrics.scorer import auc_scorer
-from sklearn.pipeline import FeatureUnion
+from sklearn.pipeline import Pipeline, FeatureUnion
 from scipy.io import loadmat
 
 from transform import FlattenTransformer
 from transform import SpectrogramTransformer
 from transform import StatsTransformer
+from transform import WhitenerTransformer
 
 
-def load_data(argv):
+def load_data(argv, full=False):
     # data = np.load("data/train.npz")
     # y = data["y_train"]
     # n_samples = len(y)
@@ -43,23 +44,33 @@ def load_data(argv):
 
     # X = np.hstack((X_specs, X_ceps, X_mfcc))
 
-    data = np.load("data/train-subsample.npz")
-    X = data["X_train"]
-    y = data["y_train"]
-    n_samples = len(y)
+    transformer = Pipeline([("spec", SpectrogramTransformer(flatten=False, transpose=True, clip=int(argv[0]))),
+                            ("whiten", WhitenerTransformer(n_components=int(argv[1]))),
+                            ("flatten", FlattenTransformer())])
 
-    s = SpectrogramTransformer(flatten=False, transpose=True, clip=int(argv[0]))
-    X = s.transform(X)
+    if not full:
+        data = np.load("data/train-subsample.npz")
+        X = data["X_train"]
+        y = data["y_train"]
 
-    from multiframe import _flatten
-    _X, _y = _flatten(X, y)
-    pca = PCA(n_components=int(argv[1])).fit(_X, _y)
-    _X = pca.transform(_X)
-    X = _X.reshape((n_samples, -1))
+        transformer.fit(X, y)
+        X = transformer.transform(X)
 
-    # Split into train/test
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5,
-                                                        random_state=42)
+        # Split into train/test
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5,
+                                                            random_state=42)
+
+    else:
+        data = np.load("data/train.npz")
+        X_train = data["X_train"]
+        y_train = data["y_train"]
+
+        transformer.fit(X_train, y_train)
+        X_train = transformer.transform(X_train)
+
+        data = np.load("data/test.npz")
+        X_test = transformer.transform(data["X_test"])
+        y_test = None
 
     return argv[2:], X_train, X_test, y_train, y_test
 
@@ -117,7 +128,7 @@ def build_dbn(argv, n_features):
         "epochs": int(argv[1]),
         "learn_rates": float(argv[2]),
         "momentum": float(argv[3]),
-        "verbose": 1
+        "verbose": 0
     }
 
     clf = DBN(units, **parameters)
@@ -143,4 +154,11 @@ if __name__ == "__main__":
     clf.fit(X_train, y_train)
 
     # AUC
-    print "AUC =", auc_scorer(clf, X_test, y_test)
+    if y_test is not None:
+        print "AUC =", auc_scorer(clf, X_test, y_test)
+
+    # Save predictions
+    if y_test is None:
+        y_pred = clf.predict_proba(X_test)
+        np.savetxt(argv[-1], y_pred[:, 1])
+

@@ -83,24 +83,6 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
         return X_prime
 
 
-class FlattenTransformer(BaseEstimator, TransformerMixin):
-    """Flattens X from 3d to 2d."""
-
-    def __init__(self, scale=1.0):
-        self.scale = scale
-
-    def fit(self, X, y=None, **fit_args):
-        return self
-
-    def transform(self, X):
-        out = np.empty((X.shape[0], X.shape[1] * X.shape[2]), dtype=np.float32)
-        for i, X_i in enumerate(X):
-            out[i, :] = X_i.flatten()
-
-        out *= self.scale
-        return out
-
-
 class StatsTransformer(BaseEstimator, TransformerMixin):
     """Creates summary statistics from X."""
 
@@ -127,3 +109,50 @@ class StatsTransformer(BaseEstimator, TransformerMixin):
                 vals = stat(X_i, axis=self.axis)
                 out[i, n_bins * j: n_bins * (j + 1)] = vals
         return out
+
+
+class WhitenerTransformer(BaseEstimator, TransformerMixin):
+    def __init__(self, n_components=None):
+        self.n_components = n_components
+
+    def fit(self, X, y=None, **fit_args):
+        _X, _y = self._flatten(X, y)
+        self.pca = PCA(n_components=self.n_components)
+        self.pca.fit(_X, _y)
+
+        return self
+
+    def transform(self, X):
+        _X = self.pca.transform(self._flatten(X))
+
+        return _X.reshape(list(X.shape[:-1]) + [-1])
+
+    def _flatten(self, X, y=None, axis=1):
+        shape = X.shape
+        _X = X.reshape([shape[0] * shape[1]] + list(shape[2:]))
+
+        if y is None:
+            return _X
+
+        else:
+            _y = np.hstack(y for i in range(shape[1]))
+            return _X, _y
+
+
+class FlattenTransformer(BaseEstimator, TransformerMixin):
+    """Flattens X from 3d to 2d."""
+
+    def __init__(self, scale=1.0):
+        self.scale = scale
+
+    def fit(self, X, y=None, **fit_args):
+        return self
+
+    def transform(self, X):
+        out = np.empty((X.shape[0], X.shape[1] * X.shape[2]), dtype=np.float32)
+        for i, X_i in enumerate(X):
+            out[i, :] = X_i.flatten()
+
+        out *= self.scale
+        return out
+
