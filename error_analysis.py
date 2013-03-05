@@ -32,7 +32,7 @@ def _plot_roc(y, y_scores, ax):
     ax.legend(loc="lower right")
 
 
-def _plot_errors(X, y, y_scores, pdf, spec_func=None, type='fp', k=10):
+def _plot_errors(X, ind, y, y_scores, pdf, spec_func=None, type='fp', k=10):
     ranking = y_scores.argsort()
     if type[-1] == 'p':
         print('sorting scores in desc order')
@@ -52,14 +52,14 @@ def _plot_errors(X, y, y_scores, pdf, spec_func=None, type='fp', k=10):
     if spec_func is None:
         spec_func = lambda x, ax: ax.specgram(x, NFFT=256, Fs=2000)
 
-    n_cols = 2
+    n_cols = 3
     n_rows = int(np.ceil(k / n_cols))
     fig, axes = plt.subplots(nrows=n_rows, ncols=n_cols,
                              figsize=(8.27, 11.69),
                              sharey=True, sharex=True)
     axes_iter = axes.flat
 
-    fig.text(0.5, .95, "type: %s | type_label: %d" % (type.upper(), type_label),
+    fig.text(0.5, .95, "%s - %d samples" % (type.upper(), y.shape[0]),
              horizontalalignment='center', size=20)
 
     n_other_label = 0
@@ -72,8 +72,8 @@ def _plot_errors(X, y, y_scores, pdf, spec_func=None, type='fp', k=10):
                 break
 
             spec_func(X[i], ax)
-            ax.set_title("Ind %d - label: %d - score: %.2f" %
-                         (i, y[i], y_scores[i]),
+            ax.set_title("rank %d - ind %d - label %d - score %.2f" %
+                         (pos, ind[i], y[i], y_scores[i]),
                          axes=ax, size=8)
         else:
             n_other_label += 1
@@ -82,11 +82,14 @@ def _plot_errors(X, y, y_scores, pdf, spec_func=None, type='fp', k=10):
     plt.close()
 
 
-def error_report(clf, X, y, spec_func=None):
+def error_report(clf, X, y, ind=None, spec_func=None):
     if hasattr(clf, 'decision_function'):
         y_scores = clf.decision_function(X)
     else:
         y_scores = clf.predict_proba(X)[:, 1]
+
+    if ind is None:
+        ind = np.arange(X.shape[0])
 
     plt.interactive(False)
 
@@ -115,10 +118,55 @@ def error_report(clf, X, y, spec_func=None):
     plt.close()
 
     fig = plt.figure(figsize=(8.27, 8.27))
-    _plot_errors(X, y, y_scores, pdf, spec_func=None, type='fp', k=10)
+    _plot_errors(X, ind, y, y_scores, pdf, spec_func=None, type='fp', k=20)
+    plt.savefig(pdf, format='pdf')
+    plt.close()
+
+    fig = plt.figure(figsize=(8.27, 8.27))
+    _plot_errors(X, ind, y, y_scores, pdf, spec_func=None, type='fn', k=20)
     plt.savefig(pdf, format='pdf')
     plt.close()
 
     pdf.close()
 
     plt.interactive(True)
+
+
+if __name__ == '__main__':
+    from sklearn.cross_validation import train_test_split
+    from sklearn.svm import LinearSVC
+    from sklearn.ensemble import GradientBoostingClassifier
+    from sklearn.ensemble import ExtraTreesClassifier
+
+    from sklearn.pipeline import Pipeline
+
+    from transform import SpectrogramTransformer
+
+    from ranking import RankSVM
+    from ranking import SVMPerf
+    from ranking import RGradientBoostingClassifier
+
+    import IPython
+
+    data = np.load("data/train_small.npz")
+
+    X = data["X_train"]
+    y = data["y_train"]
+
+    clf = LinearSVC(C=1.0, tol=0.001, loss='l1', dual=True)
+
+    clf = Pipeline(steps=[('spectrogram',
+                           SpectrogramTransformer(NFFT=256, noverlap=0.5,
+                                                  dtype=np.float64)),
+                          ('svm', clf)])
+
+    ind = np.arange(X.shape[0])
+
+    X_train, X_test, y_train, y_test, ind_train, ind_test = train_test_split(
+        X, y, ind, test_size=0.5, random_state=42)
+
+    clf.fit(X_train, y_train)
+
+    from error_analysis import error_report
+
+    error_report(clf, X_test, y_test, ind=ind_test, spec_func=None)
