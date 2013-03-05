@@ -109,6 +109,4 @@ if y_test is not None:
         data = np.load("data/train.npz")
         X = data['X_train']
         X_test_raw = X[ind_test]
-        import IPython
-        IPython.embed()
         error_report(clf, X_test_raw, y_test, y_scores=y_scores, ind=ind_test)
