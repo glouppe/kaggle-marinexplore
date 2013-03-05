@@ -130,6 +130,16 @@ def error_report(clf, X, y, ind=None, spec_func=None):
     plt.savefig(pdf, format='pdf')
     plt.close()
 
+    fig = plt.figure(figsize=(8.27, 8.27))
+    _plot_errors(X, ind, y, y_scores, pdf, spec_func=None, type='tp', k=20)
+    plt.savefig(pdf, format='pdf')
+    plt.close()
+
+    fig = plt.figure(figsize=(8.27, 8.27))
+    _plot_errors(X, ind, y, y_scores, pdf, spec_func=None, type='tn', k=20)
+    plt.savefig(pdf, format='pdf')
+    plt.close()
+
     pdf.close()
 
     plt.interactive(True)
