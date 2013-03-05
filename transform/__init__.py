@@ -117,7 +117,7 @@ class WhitenerTransformer(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None, **fit_args):
         _X, _y = self._flatten(X, y)
-        self.pca = PCA(n_components=self.n_components)
+        self.pca = PCA(n_components=self.n_components, whiten=True)
         self.pca.fit(_X, _y)
 
         return self
