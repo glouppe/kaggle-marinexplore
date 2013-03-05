@@ -3,9 +3,7 @@
 
 import numpy as np
 
-from functools import partial
-
-from matplotlib.mlab import specgram
+from matplotlib import mlab
 from scipy.stats import skew
 
 from sklearn.base import BaseEstimator
@@ -36,7 +34,8 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
 
     def __init__(self, pad_to=None, NFFT=256, noverlap=200,
                  clip=1000.0, dtype=np.float32,
-                 log=True, flatten=True, transpose=False):
+                 log=True, flatten=True, transpose=False,
+                 window=None):
         self.pad_to = pad_to
         self.NFFT = NFFT
         if noverlap < 1:
@@ -47,6 +46,7 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
         self.log = log
         self.flatten = flatten
         self.transpose = transpose
+        self.window = window
 
     def fit(self, X, y=None, **fit_args):
         return self
@@ -54,8 +54,17 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X):
         X_prime = None
 
+        window = self.window
+        if window is None:
+            window = mlab.window_hanning
+        if window == 'none':
+            window = mlab.window_none
+
         for i, X_i in enumerate(X):
-            Pxx, freqs, _ = specgram(X_i, NFFT=self.NFFT, Fs=2000, pad_to=self.pad_to, noverlap=self.noverlap)
+            Pxx, freqs, _ = mlab.specgram(X_i, NFFT=self.NFFT, Fs=2000,
+                                          pad_to=self.pad_to,
+                                          noverlap=self.noverlap,
+                                          window=window)
 
             if self.log:
                 Pxx = 10. * np.log10(Pxx)
