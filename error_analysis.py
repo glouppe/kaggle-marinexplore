@@ -85,11 +85,26 @@ def _plot_errors(X, ind, y, y_scores, pdf, spec_func=None, type='fp', k=10):
     plt.close()
 
 
-def error_report(clf, X, y, ind=None, spec_func=None):
-    if hasattr(clf, 'decision_function'):
-        y_scores = clf.decision_function(X)
-    else:
-        y_scores = clf.predict_proba(X)[:, 1]
+def error_report(clf, X, y, y_scores=None, ind=None, spec_func=None):
+    """Generate error report as a multi page pdf.
+
+    This functions plots the ROC curve of ``clf`` and spectrograms
+    for the top ``k`` false negatives, false positives, true positives,
+    and true negatives.
+
+    Parameters
+    ----------
+    clf : BaseEstimator
+        A trained classifier
+    X : ndarray
+        A data array, used to generate the spectrograms (using ``spec_func``)
+        and optionally ``y_scores``.
+    """
+    if y_scores is None:
+        if hasattr(clf, 'decision_function'):
+            y_scores = clf.decision_function(X)
+        else:
+            y_scores = clf.predict_proba(X)[:, 1]
 
     if ind is None:
         ind = np.arange(X.shape[0])
@@ -182,4 +197,4 @@ if __name__ == '__main__':
 
     from error_analysis import error_report
 
-    error_report(clf, X_test, y_test, ind=ind_test, spec_func=None)
+    error_report(clf, X_test, y=y_test, ind=ind_test, spec_func=None)
