@@ -7,6 +7,8 @@ from datetime import datetime
 
 import matplotlib
 matplotlib.use('pdf')
+matplotlib.rc('xtick', labelsize=6)
+matplotlib.rc('ytick', labelsize=6)
 
 from matplotlib.backends.backend_pdf import PdfPages
 import pylab as plt
@@ -72,9 +74,10 @@ def _plot_errors(X, ind, y, y_scores, pdf, spec_func=None, type='fp', k=10):
                 break
 
             spec_func(X[i], ax)
-            ax.set_title("rank %d - ind %d - label %d - score %.2f" %
+            # rank - index - label - score
+            ax.set_title("r %d - i %d - l %d - s %.2f" %
                          (pos, ind[i], y[i], y_scores[i]),
-                         axes=ax, size=8)
+                         axes=ax, size=6)
         else:
             n_other_label += 1
 
@@ -153,7 +156,7 @@ if __name__ == '__main__':
     X = data["X_train"]
     y = data["y_train"]
 
-    clf = LinearSVC(C=1.0, tol=0.001, loss='l1', dual=True)
+    clf = LinearSVC(C=1e-5, tol=0.001, loss='l1', dual=True)
 
     clf = Pipeline(steps=[('spectrogram',
                            SpectrogramTransformer(NFFT=256, noverlap=0.5,
