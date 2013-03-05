@@ -2,7 +2,7 @@ import numpy as np
 
 from functools import partial
 
-from matplotlib.mlab import specgram
+from matplotlib import mlab
 from scipy.stats import skew
 
 from sklearn.base import BaseEstimator
@@ -39,7 +39,8 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
 
     def __init__(self, pad_to=None, NFFT=256, noverlap=200,
                  clip_upper=1000.0, clip_lower=0.0, dtype=np.float32,
-                 whiten=None, log=True, flatten=True):
+                 whiten=None, log=True, flatten=True, window=None,
+                 detrend=mlab.detrend_none, sides='default'):
         self.pad_to = pad_to
         self.NFFT = NFFT
         if noverlap < 1:
@@ -51,17 +52,30 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
         self.whiten = whiten
         self.log = log
         self.flatten = flatten
+        self.window = window
+        self.detrend = detrend
+        self.sides = sides
 
     def fit(self, X, y=None, **fit_args):
         return self
 
     def transform(self, X):
         X_prime = None
+        window = self.window
+
+        if window is None:
+            window = mlab.window_hanning
+        elif hasattr(window, '__call__'):
+            # if window is np.hamming, np.bartlett, ...
+            window = window(self.NFFT)
+
         for i, X_i in enumerate(X):
-            s = specgram(X_i, NFFT=self.NFFT, Fs=2000, pad_to=self.pad_to,
-                         noverlap=self.noverlap)
+            s = mlab.specgram(X_i, NFFT=self.NFFT, Fs=2000, pad_to=self.pad_to,
+                              noverlap=self.noverlap, window=window,
+                              detrend=self.detrend, sides=self.sides)
             Pxx = s[0]
             if self.log:
+                Pxx[Pxx <= 0.0] = 1e-9
                 Pxx = 10. * np.log10(Pxx)
             #Pxx = np.flipud(Pxx)
             if self.clip_upper < 1000.0:
