@@ -27,18 +27,18 @@ done
 done
 
 # GBRT
-n_estimators=500
+n_estimators=5000
 
-for max_depth in 3 5
+for max_depth in 5 6 7
 do
-for max_features in 3725 256 64
+for max_features in 512 256 128
 do
-for learning_rate in 0.1 0.02
+for learning_rate in 0.1 0.04 0.01
 do
-for min_samples_split in 7 13
+for min_samples_split in 13 17
 do
 
-echo qsub -o grid/gbrt -e grid/gbrt grid-job.sh gbrt $n_estimators $max_depth $learning_rate $max_features $min_samples_split
+qsub -o grid/gbrt -e grid/gbrt grid-job.sh gbrt $n_estimators $max_depth $learning_rate $max_features $min_samples_split
 
 done
 done
@@ -53,14 +53,14 @@ for epochs in 50
 do
 for units in 300 400 500
 do
-for learn_rates in  0.008 0.007 0.006 0.005 0.004  
+for learn_rates in  0.008 0.007 0.006 0.005 0.004
 do
-for momentum in 0.1 0.08 0.06 0.04 
+for momentum in 0.1 0.08 0.06 0.04
 do
-for nc in 10 
+for nc in 10
 do
 
-qsub -o grid/dbn -e grid/dbn grid-job.sh $clip $nc dbn $units-$units-$units $epochs $learn_rates $momentum
+echo qsub -o grid/dbn -e grid/dbn grid-job.sh $clip $nc dbn $units-$units-$units $epochs $learn_rates $momentum
 
 done
 done

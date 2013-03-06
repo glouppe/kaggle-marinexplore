@@ -16,63 +16,38 @@ from transform import StatsTransformer
 from transform import WhitenerTransformer
 
 
-def load_data(argv, full=False):
-    # data = np.load("data/train.npz")
-    # y = data["y_train"]
-    # n_samples = len(y)
+def load_data():
+    data = np.load("data/train.npz")
+    y = data["y_train"]
+    n_samples = len(y)
 
-    # tf = FeatureUnion([
-    #     ('spec', FlattenTransformer(scale=1.0)),
-    #     ('st1', StatsTransformer(axis=1)),
-    #     ('st0', StatsTransformer(axis=0)),
-    # ])
+    tf = FeatureUnion([
+        ('spec', FlattenTransformer(scale=1.0)),
+        ('st1', StatsTransformer(axis=1)),
+        ('st0', StatsTransformer(axis=0)),
+    ])
 
-    # data = loadmat("data/train_specs.mat")
-    # X_specs = data["train_specs"]
-    # X_specs = X_specs.reshape((n_samples, 98, 13))
-    # X_specs = tf.transform(X_specs)
+    data = loadmat("data/train_specs.mat")
+    X_specs = data["train_specs"]
+    X_specs = X_specs.reshape((n_samples, 98, 13))
+    X_specs = tf.transform(X_specs)
 
-    # data = loadmat("data/train_ceps.mat")
-    # X_ceps = data["train_ceps"]
-    # X_ceps = X_ceps.reshape((n_samples, 98, 9))
-    # X_ceps = tf.transform(X_ceps)
+    data = loadmat("data/train_ceps.mat")
+    X_ceps = data["train_ceps"]
+    X_ceps = X_ceps.reshape((n_samples, 98, 9))
+    X_ceps = tf.transform(X_ceps)
 
-    # data = loadmat("data/train_mfcc.mat")
-    # X_mfcc = data["train_mfcc"]
-    # X_mfcc = X_mfcc.reshape((n_samples, 23, 13))
-    # X_mfcc = tf.transform(X_mfcc)
+    data = loadmat("data/train_mfcc.mat")
+    X_mfcc = data["train_mfcc"]
+    X_mfcc = X_mfcc.reshape((n_samples, 23, 13))
+    X_mfcc = tf.transform(X_mfcc)
 
-    # X = np.hstack((X_specs, X_ceps, X_mfcc))
+    X = np.hstack((X_specs, X_ceps, X_mfcc))
 
-    transformer = Pipeline([("spec", SpectrogramTransformer(flatten=False, transpose=True, clip=int(argv[0]))),
-                            ("whiten", WhitenerTransformer(n_components=int(argv[1]))),
-                            ("flatten", FlattenTransformer())])
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5,
+                                                        random_state=42)
 
-    if not full:
-        data = np.load("data/train-subsample.npz")
-        X = data["X_train"]
-        y = data["y_train"]
-
-        transformer.fit(X, y)
-        X = transformer.transform(X)
-
-        # Split into train/test
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5,
-                                                            random_state=42)
-
-    else:
-        data = np.load("data/train.npz")
-        X_train = data["X_train"]
-        y_train = data["y_train"]
-
-        transformer.fit(X_train, y_train)
-        X_train = transformer.transform(X_train)
-
-        data = np.load("data/test.npz")
-        X_test = transformer.transform(data["X_test"])
-        y_test = None
-
-    return argv[2:], X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test
 
 
 def build_extratrees(argv, n_features):
@@ -142,7 +117,7 @@ if __name__ == "__main__":
 
     # Load data
     print "Loading data..."
-    argv, X_train, X_test, y_train, y_test = load_data(argv)
+    X_train, X_test, y_train, y_test = load_data()
 
     # Estimator setup
     print "Estimator setup..."
