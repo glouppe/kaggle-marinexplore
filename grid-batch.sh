@@ -47,16 +47,38 @@ done
 
 # DBN
 
-epochs=30
+for clip in 1000
+do
+for epochs in 50
+do
+for units in 300 400 500
+do
+for learn_rates in  0.008 0.007 0.006 0.005 0.004  
+do
+for momentum in 0.1 0.08 0.06 0.04 
+do
+for nc in 10 
+do
 
-for units in 300
+qsub -o grid/dbn -e grid/dbn grid-job.sh $clip $nc dbn $units-$units-$units $epochs $learn_rates $momentum
+
+done
+done
+done
+done
+done
+done
+
+# Multiframe
+
+for nftt in 1024 2048
 do
-for learn_rates in 0.014 0.012 0.01 0.008 0.006
+for noverlap in 0 32 64 128 256 512 768
 do
-for momentum in 0.17 0.16 0.15 0.14 0.13
+for clip in 100 250 500 1000
 do
 
-qsub -o grid/dbn -e grid/dbn grid-job.sh dbn $units-$units-$units $epochs $learn_rates $momentum
+echo qsub -o grid/multi -e grid/multi grid-job.sh $nftt $noverlap $clip
 
 done
 done

@@ -12,7 +12,7 @@ from scipy.io import loadmat
 
 from transform import FlattenTransformer
 from transform import StatsTransformer
-
+from transform.peaks import PeaksTransformer
 
 def load_data(full=False):
     data = np.load("data/train.npz")
@@ -79,9 +79,9 @@ def load_data(full=False):
     return X_train, X_test, y_train, y_test
 
 
-X_train, X_test, y_train, y_test = load_data(full=False)
+X_train, X_test, y_train, y_test = load_data(full=True)
 
-clf = GradientBoostingClassifier(n_estimators=500, max_depth=5,
+clf = GradientBoostingClassifier(n_estimators=1000, max_depth=5,
                                  learning_rate=0.1, max_features=256,
                                  min_samples_split=7, verbose=3,
                                  random_state=13)
@@ -91,3 +91,5 @@ if y_test is not None:
     from sklearn.metrics import auc_score
     print clf
     print "AUC: %.6f" % auc_score(y_test, clf.decision_function(X_test))
+
+np.savetxt("gbrt2.txt", clf.decision_function(X_test))
