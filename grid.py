@@ -8,12 +8,13 @@ from sklearn.cross_validation import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.metrics.scorer import auc_scorer
 from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.preprocessing import normalize, scale
 from scipy.io import loadmat
 
 from transform import FlattenTransformer
 from transform import SpectrogramTransformer
 from transform import StatsTransformer
-from transform import WhitenerTransformer
+from transform import FuncTransformer
 
 
 def load_data():
@@ -21,28 +22,30 @@ def load_data():
     y = data["y_train"]
     n_samples = len(y)
 
-    tf = FeatureUnion([
-        ('spec', FlattenTransformer(scale=1.0)),
-        ('st1', StatsTransformer(axis=1)),
-        ('st0', StatsTransformer(axis=0)),
-    ])
+    tf = Pipeline([
+            #("func", FuncTransformer(normalize, axis=1, norm="l2", copy=False)),
+            ("flat_stats", FeatureUnion([
+                ('spec', FlattenTransformer(scale=1.0)),
+                ('st1', StatsTransformer(axis=1)),
+                ('st0', StatsTransformer(axis=0))]))
+        ])
 
-    data = loadmat("data/train_specs.mat")
-    X_specs = data["train_specs"]
-    X_specs = X_specs.reshape((n_samples, 98, 13))
-    X_specs = tf.transform(X_specs)
+    # data = loadmat("data/train_specs.mat")
+    # X_specs = data["train_specs"]
+    # X_specs = X_specs.reshape((n_samples, 98, 13))
+    # X_specs = tf.transform(X_specs)
 
-    data = loadmat("data/train_ceps.mat")
-    X_ceps = data["train_ceps"]
-    X_ceps = X_ceps.reshape((n_samples, 98, 9))
-    X_ceps = tf.transform(X_ceps)
+    # data = loadmat("data/train_ceps.mat")
+    # X_ceps = data["train_ceps"]
+    # X_ceps = X_ceps.reshape((n_samples, 98, 9))
+    # X_ceps = tf.transform(X_ceps)
 
     data = loadmat("data/train_mfcc.mat")
     X_mfcc = data["train_mfcc"]
     X_mfcc = X_mfcc.reshape((n_samples, 23, 13))
     X_mfcc = tf.transform(X_mfcc)
 
-    X = np.hstack((X_specs, X_ceps, X_mfcc))
+    X = X_mfcc #np.hstack((X_specs, X_ceps, X_mfcc))
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5,
                                                         random_state=42)

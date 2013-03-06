@@ -165,3 +165,20 @@ class FlattenTransformer(BaseEstimator, TransformerMixin):
         out *= self.scale
         return out
 
+
+class FuncTransformer(BaseEstimator, TransformerMixin):
+    """Flattens X from 3d to 2d, apply func, and reshape to 3d."""
+
+    def __init__(self, func, **func_args):
+        self.func = func
+        self.func_args = func_args
+
+    def fit(self, X, y=None, **fit_args):
+        return self
+
+    def transform(self, X):
+        _X = X.reshape((X.shape[0], -1))
+        _Xt = self.func(X, **self.func_args)
+        _X = _Xt.reshape(X.shape)
+
+        return _X
