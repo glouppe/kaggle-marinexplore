@@ -27,10 +27,16 @@ def load_data(full=False):
         ])
 
     datasets = [
+        ("ceps_2000", 198, 9),
+        ("specs_2000", 198, 9),
         ("ceps_4000", 98, 9),
         ("specs_4000", 98, 13),
-        #("mfcc_8000", 48, 13),
-        #("mfcc_16000", 23, 13),
+        ("ceps_8000", 48, 9),
+        ("specs_8000", 48, 17),
+        ("ceps_16000", 23, 9),
+        ("specs_16000", 23, 21),
+        ("mfcc_8000", 48, 13),
+        ("mfcc_16000", 23, 13),
         ("mfcc_32000", 11, 13),
         ("mfcc_64000", 4, 13)
     ]
@@ -53,7 +59,6 @@ def load_data(full=False):
         data = np.load("data/train.npz")
         y = data["y_train"]
         X = _load(datasets, prefix="data/train_")
-
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42)
 
     else:
