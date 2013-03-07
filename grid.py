@@ -17,38 +17,51 @@ from transform import StatsTransformer
 from transform import FuncTransformer
 
 
-def load_data():
-    data = np.load("data/train.npz")
-    y = data["y_train"]
-    n_samples = len(y)
-
+def load_data(full=False):
     tf = Pipeline([
             #("func", FuncTransformer(normalize, axis=1, norm="l2", copy=False)),
-            ("flat_stats", FeatureUnion([
+            ("union", FeatureUnion([
                 ('spec', FlattenTransformer(scale=1.0)),
                 ('st1', StatsTransformer(axis=1)),
                 ('st0', StatsTransformer(axis=0))]))
         ])
 
-    # data = loadmat("data/train_specs.mat")
-    # X_specs = data["train_specs"]
-    # X_specs = X_specs.reshape((n_samples, 98, 13))
-    # X_specs = tf.transform(X_specs)
+    datasets = [
+        ("ceps_4000", 98, 9),
+        ("specs_4000", 98, 13),
+        #("mfcc_8000", 48, 13),
+        #("mfcc_16000", 23, 13),
+        ("mfcc_32000", 11, 13),
+        ("mfcc_64000", 4, 13)
+    ]
 
-    # data = loadmat("data/train_ceps.mat")
-    # X_ceps = data["train_ceps"]
-    # X_ceps = X_ceps.reshape((n_samples, 98, 9))
-    # X_ceps = tf.transform(X_ceps)
+    def _load(datasets, prefix="data/train_"):
+        all_arrays = []
 
-    data = loadmat("data/train_mfcc.mat")
-    X_mfcc = data["train_mfcc"]
-    X_mfcc = X_mfcc.reshape((n_samples, 23, 13))
-    X_mfcc = tf.transform(X_mfcc)
+        for name, d0, d1 in datasets:
+            data = loadmat("%s%s.mat" % (prefix, name))
+            X = data[sorted(data.keys())[-1]]
+            X = X.reshape((X.shape[0], d0, d1))
+            X = tf.transform(X)
+            all_arrays.append(X)
 
-    X = X_mfcc #np.hstack((X_specs, X_ceps, X_mfcc))
+        X = np.hstack(all_arrays)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5,
-                                                        random_state=42)
+        return X
+
+    if not full:
+        data = np.load("data/train.npz")
+        y = data["y_train"]
+        X = _load(datasets, prefix="data/train_")
+
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42)
+
+    else:
+        data = np.load("data/train.npz")
+        y_train = data["y_train"]
+        X_train = _load(datasets, prefix="data/train_")
+        X_test = _load(datasets, prefix="data/test_")
+        y_test = None
 
     return X_train, X_test, y_train, y_test
 
@@ -121,6 +134,8 @@ if __name__ == "__main__":
     # Load data
     print "Loading data..."
     X_train, X_test, y_train, y_test = load_data()
+    print "X_train.shape =", X_train.shape
+    print "y_train.shape =", y_train.shape
 
     # Estimator setup
     print "Estimator setup..."
