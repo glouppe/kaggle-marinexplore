@@ -127,6 +127,24 @@ def build_dbn(argv, n_features):
         "verbose": 0
     }
 
+    parameters = {
+        "epochs": int(argv[1]),
+        "epochs_pretrain": 10,
+        "learn_rates_pretrain": [0.001, 0.01, 0.01],
+        "learn_rates": 1.0,
+        "l2_costs_pretrain": 0.0001,
+        "l2_costs": 0.0,
+        "momentum": float(argv[3]),
+        "verbose": 2,
+        "real_valued_vis": True,
+        "use_re_lu": False,
+        "scales": 0.01,
+        "minibatch_size": 200,
+        "dropouts": [0.2, 0.5, 0.5],
+        #"output_act_funct": "Sigmoid",
+        }
+
+
     clf = DBN(units, **parameters)
 
     return clf
