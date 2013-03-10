@@ -44,14 +44,10 @@ def load_data(full=False):
     X_mfcc = X_mfcc.reshape((n_samples, 23, 13))
     X_mfcc = tf.transform(X_mfcc)
 
-    data = np.load('data/act_dbn.npz')
-    X_act = data['X_act_train']
-
     print('X_specs: %s' % str(X_specs.shape))
     print('X_ceps: %s' % str(X_ceps.shape))
     print('X_mfcc: %s' % str(X_mfcc.shape))
-    print('X_act: %s' % str(X_act.shape))
-    data = (X_specs, X_ceps, X_mfcc, X_act)
+    data = (X_specs, X_ceps, X_mfcc)
     X = np.hstack(data)
 
     if full:
@@ -77,10 +73,7 @@ def load_data(full=False):
         X_mfcc = X_mfcc.reshape((n_samples, 23, 13))
         X_mfcc = tf.transform(X_mfcc)
 
-        data = np.load('data/act_dbn.npz')
-        X_act = data['X_act_test']
-
-        data = (X_specs, X_ceps, X_mfcc, X_act)
+        data = (X_specs, X_ceps, X_mfcc)
         X_test = np.hstack(data)
         y_test = None
         ind_train = None
