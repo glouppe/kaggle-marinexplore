@@ -48,6 +48,9 @@ def load_data(argv, full=False):
 
         for name, d0, d1 in datasets:
             data = loadmat("%s%s.mat" % (prefix, name))
+            data.pop("__globals__")
+            data.pop("__header__")
+            data.pop("__version__")
             X = data[sorted(data.keys())[-1]]
             X = X.reshape((X.shape[0], d0, d1))
             X = tf.transform(X)
@@ -190,7 +193,7 @@ if __name__ == "__main__":
     if y_test is not None:
         print "AUC =", auc_scorer(clf, X_test, y_test)
 
-    #np.savetxt("feature-importances-rf2.txt", clf.feature_importances_)
+    np.savetxt("feature-importances-rf2.txt", clf.feature_importances_)
     
     # Save predictions
     if y_test is None:
