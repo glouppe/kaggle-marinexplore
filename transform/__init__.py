@@ -182,3 +182,35 @@ class FuncTransformer(BaseEstimator, TransformerMixin):
         _X = _Xt.reshape(X.shape)
 
         return _X
+
+
+class FilterTransformer(BaseEstimator, TransformerMixin):
+    """Applies a filter function to each row in ``X``
+
+    Example
+    -------
+
+    >>> tf = FilterTransformer(scipy.signal.wiener)
+    >>> X = tf.fit_transform(X)
+    """
+
+    def __init__(self, filter_, *filter_args, **kwargs):
+        self.filter = filter_
+        self.filter_args = filter_args
+        self.noise = kwargs.pop('noise', False)
+
+    def fit(self, X, y=None, **fit_args):
+        return self
+
+    def transform(self, X):
+        out = np.empty_like(X)
+        filter_ = self.filter
+        filter_args = self.filter_args
+        noise = None
+        if self.noise:
+            noise = 1e-5 * np.random.rand(X.shape[1]) - 0.5
+        for i, x in enumerate(X):
+            if noise is not None:
+                x += noise
+            out[i] = filter_(x, *filter_args)
+        return out

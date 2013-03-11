@@ -5,10 +5,9 @@ import numpy as np
 import sys
 
 from sklearn.cross_validation import train_test_split
-from sklearn.decomposition import PCA
 from sklearn.metrics.scorer import auc_scorer
 from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.preprocessing import normalize, scale
+from sklearn.preprocessing import normalize, scale, StandardScaler
 from scipy.io import loadmat
 
 from transform import FlattenTransformer
@@ -123,18 +122,35 @@ def build_gbrt(argv, n_features):
 
 
 def build_dbn(argv, n_features):
+    """argv: units epochs epochs_pretrain learn_rates learn_rates_pretrain"""
     from nolearn.dbn import DBN
 
     units = [n_features] + [int(n) for n in argv[0].split("-")] + [2]
+    n_layers = len(units) - 2
+
+    learn_rates = eval(argv[3])
+    learn_rates_pretrain = eval(argv[4])
 
     parameters = {
         "epochs": int(argv[1]),
-        "learn_rates": float(argv[2]),
-        "momentum": float(argv[3]),
-        "verbose": 0
-    }
+        "epochs_pretrain": int(argv[2]),
+        "learn_rates": learn_rates,
+        "learn_rates_pretrain": learn_rates_pretrain,
+        "l2_costs": 0.0,
+        "l2_costs_pretrain": 0.0001,
+        "momentum": 0.9,
+        "verbose": 0,
+        "real_valued_vis": True,
+        "use_re_lu": False,
+        "scales": 0.01,
+        "minibatch_size": 200,
+        "dropouts": [0.2] + [0.5] * n_layers,
+        }
 
-    clf = DBN(units, **parameters)
+    dbn = DBN(units, **parameters)
+
+    clf = Pipeline(steps=[('scale', StandardScaler()),
+                          ('dbn', dbn)])
 
     return clf
 
