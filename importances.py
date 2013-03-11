@@ -25,8 +25,8 @@ features = []
 
 for name, d0, d1 in datasets:
     features.append((name, d0*d1))
-    features.append(("%s_stats (axis=1)" % name, 5*d0))
-    features.append(("%s_stats (axis=0)" % name, 5*d1))
+    features.append(("%s_stats (axis=1)" % name, 6*d0))
+    features.append(("%s_stats (axis=0)" % name, 6*d1))
 
 
 indices = {}
