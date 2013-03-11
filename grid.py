@@ -61,6 +61,7 @@ def load_data(argv, full=False):
         argv.pop(0) 
         importances = np.loadtxt("feature-importances-rf.txt")
         indices = np.argsort(importances)[::-1]
+        indices = indices[:n_features]
     except:
         indices = None
 
@@ -69,7 +70,7 @@ def load_data(argv, full=False):
         y = data["y_train"]
         X = _load(datasets, prefix="data/train_")
         if indices is not None:
-            X = X[:, indices[:n_features]]
+            X = X[:, indices]
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42)
 
     else:
@@ -77,10 +78,10 @@ def load_data(argv, full=False):
         y_train = data["y_train"]
         X_train = _load(datasets, prefix="data/train_")
         if indices is not None:
-            X_train = X_train[:, indices[:n_features]]
+            X_train = X_train[:, indices]
         X_test = _load(datasets, prefix="data/test_")
         if indices is not None:
-            X_test = X_test[:, indices[:n_features]]
+            X_test = X_test[:, indices]
         y_test = None
 
     return X_train, X_test, y_train, y_test
