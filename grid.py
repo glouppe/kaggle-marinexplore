@@ -136,7 +136,7 @@ def build_dbn(argv, n_features):
         "real_valued_vis": True,
         "use_re_lu": False,
         "scales": 0.01,
-        "minibatch_size": 20,
+        "minibatch_size": 200,
         "dropouts": [0.2] + [0.5] * n_layers,
         }
 
