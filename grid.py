@@ -17,7 +17,7 @@ from transform import StatsTransformer
 from transform import FuncTransformer
 
 
-def load_data(full=False):
+def load_data(argv, full=False):
     tf = Pipeline([
             #("func", FuncTransformer(normalize, axis=1, norm="l2", copy=False)),
             ("union", FeatureUnion([
@@ -55,17 +55,24 @@ def load_data(full=False):
 
         return X
 
+    importances = np.loadtxt("feature-importances-rf.txt")
+    indices = np.argsort(importances)[::-1]
+    n_features = int(argv.pop(0))
+
     if not full:
         data = np.load("data/train.npz")
         y = data["y_train"]
         X = _load(datasets, prefix="data/train_")
+        X = X[:, indices[:n_features]]
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42)
 
     else:
         data = np.load("data/train.npz")
         y_train = data["y_train"]
         X_train = _load(datasets, prefix="data/train_")
+        X_train = X_train[:, indices[:n_features]]
         X_test = _load(datasets, prefix="data/test_")
+        X_test = X_test[:, indices[:n_features]]
         y_test = None
 
     return X_train, X_test, y_train, y_test
@@ -90,7 +97,7 @@ def build_randomforest(argv, n_features):
 
     parameters = {
         "n_estimators": int(argv[0]),
-        "max_features": int(argv[1]),
+        #"max_features": int(argv[1]),
         "min_samples_split": int(argv[2]),
     }
 
@@ -106,7 +113,7 @@ def build_gbrt(argv, n_features):
         "n_estimators": int(argv[0]),
         "max_depth": int(argv[1]),
         "learning_rate": float(argv[2]),
-        "max_features": int(argv[3]),
+        "max_features": float(argv[3]),
         "min_samples_split": int(argv[4]),
     }
 
@@ -138,7 +145,7 @@ if __name__ == "__main__":
 
     # Load data
     print "Loading data..."
-    X_train, X_test, y_train, y_test = load_data()
+    X_train, X_test, y_train, y_test = load_data(argv, full=False)
     print "X_train.shape =", X_train.shape
     print "y_train.shape =", y_train.shape
 
@@ -155,8 +162,9 @@ if __name__ == "__main__":
     if y_test is not None:
         print "AUC =", auc_scorer(clf, X_test, y_test)
 
+    #np.savetxt("feature-importances-rf.txt", clf.feature_importances_)
+    
     # Save predictions
     if y_test is None:
-        y_pred = clf.predict_proba(X_test)
-        np.savetxt(argv[-1], y_pred[:, 1])
+        np.savetxt(argv[-1], clf.decision_function(X_test))
 
