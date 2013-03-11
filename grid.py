@@ -16,7 +16,7 @@ from transform import StatsTransformer
 from transform import FuncTransformer
 
 
-def load_data(full=False):
+def load_data(argv, full=False):
     tf = Pipeline([
             #("func", FuncTransformer(normalize, axis=1, norm="l2", copy=False)),
             ("union", FeatureUnion([
@@ -34,10 +34,13 @@ def load_data(full=False):
         ("specs_8000", 48, 17),
         ("ceps_16000", 23, 9),
         ("specs_16000", 23, 21),
+        ("ceps_32000", 11, 9),
+        ("specs_32000", 11, 25),
         ("mfcc_8000", 48, 13),
         ("mfcc_16000", 23, 13),
         ("mfcc_32000", 11, 13),
-        ("mfcc_64000", 4, 13)
+        ("mfcc_64000", 4, 13),
+        ("wiener1spectro", 65, 30),
     ]
 
     def _load(datasets, prefix="data/train_"):
@@ -45,6 +48,9 @@ def load_data(full=False):
 
         for name, d0, d1 in datasets:
             data = loadmat("%s%s.mat" % (prefix, name))
+            data.pop("__globals__")
+            data.pop("__header__")
+            data.pop("__version__")
             X = data[sorted(data.keys())[-1]]
             X = X.reshape((X.shape[0], d0, d1))
             X = tf.transform(X)
@@ -54,17 +60,32 @@ def load_data(full=False):
 
         return X
 
+    try:
+        n_features = int(argv[0]) # will fail if string; this is fine
+        argv.pop(0) 
+        importances = np.loadtxt("feature-importances-rf2.txt")
+        indices = np.argsort(importances)[::-1]
+        indices = indices[:n_features]
+    except:
+        indices = None
+
     if not full:
         data = np.load("data/train.npz")
         y = data["y_train"]
         X = _load(datasets, prefix="data/train_")
+        if indices is not None:
+            X = X[:, indices]
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42)
 
     else:
         data = np.load("data/train.npz")
         y_train = data["y_train"]
         X_train = _load(datasets, prefix="data/train_")
+        if indices is not None:
+            X_train = X_train[:, indices]
         X_test = _load(datasets, prefix="data/test_")
+        if indices is not None:
+            X_test = X_test[:, indices]
         y_test = None
 
     return X_train, X_test, y_train, y_test
@@ -89,8 +110,9 @@ def build_randomforest(argv, n_features):
 
     parameters = {
         "n_estimators": int(argv[0]),
-        "max_features": int(argv[1]),
+        #"max_features": int(argv[1]),
         "min_samples_split": int(argv[2]),
+        "n_jobs": 3,
     }
 
     clf = RandomForestClassifier(**parameters)
@@ -105,7 +127,7 @@ def build_gbrt(argv, n_features):
         "n_estimators": int(argv[0]),
         "max_depth": int(argv[1]),
         "learning_rate": float(argv[2]),
-        "max_features": int(argv[3]),
+        "max_features": float(argv[3]),
         "min_samples_split": int(argv[4]),
     }
 
@@ -154,7 +176,7 @@ if __name__ == "__main__":
 
     # Load data
     print "Loading data..."
-    X_train, X_test, y_train, y_test = load_data()
+    X_train, X_test, y_train, y_test = load_data(argv, full=False)
     print "X_train.shape =", X_train.shape
     print "y_train.shape =", y_train.shape
 
@@ -171,8 +193,9 @@ if __name__ == "__main__":
     if y_test is not None:
         print "AUC =", auc_scorer(clf, X_test, y_test)
 
+    np.savetxt("feature-importances-rf2.txt", clf.feature_importances_)
+    
     # Save predictions
     if y_test is None:
-        y_pred = clf.predict_proba(X_test)
-        np.savetxt(argv[-1], y_pred[:, 1])
+        np.savetxt(argv[-1], clf.decision_function(X_test))
 

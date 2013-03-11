@@ -27,19 +27,22 @@ done
 done
 
 # GBRT
-n_estimators=5000
+n_estimators=2500
 
-for max_depth in 5 6 7
+for n_features in 1800 1900
 do
-for max_features in 512 256 128
+for max_depth in 8 
 do
-for learning_rate in 0.1 0.04 0.01
+for max_features in 0.0125 0.015 0.0175 0.02
 do
-for min_samples_split in 13 17
+for learning_rate in 0.13 0.125 0.12 0.115 0.11 
+do
+for min_samples_split in 28
 do
 
-qsub -o grid/gbrt -e grid/gbrt grid-job.sh gbrt $n_estimators $max_depth $learning_rate $max_features $min_samples_split
+qsub -o grid/gbrt -e grid/gbrt grid-job.sh $n_features gbrt $n_estimators $max_depth $learning_rate $max_features $min_samples_split
 
+done
 done
 done
 done
