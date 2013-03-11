@@ -34,6 +34,8 @@ def load_data(argv, full=False):
         ("specs_8000", 48, 17),
         ("ceps_16000", 23, 9),
         ("specs_16000", 23, 21),
+        ("ceps_32000", 11, 9),
+        ("specs_32000", 11, 25),
         ("mfcc_8000", 48, 13),
         ("mfcc_16000", 23, 13),
         ("mfcc_32000", 11, 13),
@@ -54,24 +56,31 @@ def load_data(argv, full=False):
 
         return X
 
-    importances = np.loadtxt("feature-importances-rf.txt")
-    indices = np.argsort(importances)[::-1]
-    n_features = int(argv.pop(0))
+    try:
+        n_features = int(argv[0]) # will fail if string; this is fine
+        argv.pop(0) 
+        importances = np.loadtxt("feature-importances-rf.txt")
+        indices = np.argsort(importances)[::-1]
+    except:
+        indices = None
 
     if not full:
         data = np.load("data/train.npz")
         y = data["y_train"]
         X = _load(datasets, prefix="data/train_")
-        X = X[:, indices[:n_features]]
+        if indices is not None:
+            X = X[:, indices[:n_features]]
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42)
 
     else:
         data = np.load("data/train.npz")
         y_train = data["y_train"]
         X_train = _load(datasets, prefix="data/train_")
-        X_train = X_train[:, indices[:n_features]]
+        if indices is not None:
+            X_train = X_train[:, indices[:n_features]]
         X_test = _load(datasets, prefix="data/test_")
-        X_test = X_test[:, indices[:n_features]]
+        if indices is not None:
+            X_test = X_test[:, indices[:n_features]]
         y_test = None
 
     return X_train, X_test, y_train, y_test
