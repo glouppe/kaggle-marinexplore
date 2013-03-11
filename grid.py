@@ -39,7 +39,8 @@ def load_data(argv, full=False):
         ("mfcc_8000", 48, 13),
         ("mfcc_16000", 23, 13),
         ("mfcc_32000", 11, 13),
-        ("mfcc_64000", 4, 13)
+        ("mfcc_64000", 4, 13),
+        ("wiener1spectro", 65, 30),
     ]
 
     def _load(datasets, prefix="data/train_"):
@@ -59,7 +60,7 @@ def load_data(argv, full=False):
     try:
         n_features = int(argv[0]) # will fail if string; this is fine
         argv.pop(0) 
-        importances = np.loadtxt("feature-importances-rf.txt")
+        importances = np.loadtxt("feature-importances-rf2.txt")
         indices = np.argsort(importances)[::-1]
         indices = indices[:n_features]
     except:
@@ -108,6 +109,7 @@ def build_randomforest(argv, n_features):
         "n_estimators": int(argv[0]),
         #"max_features": int(argv[1]),
         "min_samples_split": int(argv[2]),
+        "n_jobs": 3,
     }
 
     clf = RandomForestClassifier(**parameters)
@@ -188,7 +190,7 @@ if __name__ == "__main__":
     if y_test is not None:
         print "AUC =", auc_scorer(clf, X_test, y_test)
 
-    #np.savetxt("feature-importances-rf.txt", clf.feature_importances_)
+    #np.savetxt("feature-importances-rf2.txt", clf.feature_importances_)
     
     # Save predictions
     if y_test is None:
