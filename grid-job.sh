@@ -1,11 +1,14 @@
 #!/bin/bash
 
 #$ -N whale
-#$ -l h_vmem=4200M
-#$ -l mem_free=4200M
+#$ -l h_vmem=4900M
+#$ -l mem_free=4900M
 #$ -l h_rt=864000
 #$ -S /bin/bash
 #$ -cwd
+
+###$ -q threads
+###$ -pe snode 1
 
 unset SGE_ROOT
 

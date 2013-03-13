@@ -99,7 +99,7 @@ class StatsTransformer(BaseEstimator, TransformerMixin):
         def percentile(a, axis=0, p=50):
             return np.percentile(a, p, axis=axis)
 
-        self.stats = [np.min, np.max, np.mean, np.var, np.median, np.ptp]
+        self.stats = [np.min, np.max, np.mean, np.var, np.median] #, np.ptp]
         self.axis = axis
 
     def fit(self, X, y=None, **fit_args):

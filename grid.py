@@ -14,6 +14,7 @@ from transform import FlattenTransformer
 from transform import SpectrogramTransformer
 from transform import StatsTransformer
 from transform import FuncTransformer
+from transform.pool import PoolTransformer
 
 
 def load_data(argv, full=False):
@@ -21,6 +22,7 @@ def load_data(argv, full=False):
             #("func", FuncTransformer(normalize, axis=1, norm="l2", copy=False)),
             ("union", FeatureUnion([
                 ('spec', FlattenTransformer(scale=1.0)),
+                #('max-pool', PoolTransformer(size=(2,2), step=(2,2))),
                 ('st1', StatsTransformer(axis=1)),
                 ('st0', StatsTransformer(axis=0))]))
         ])
@@ -40,7 +42,7 @@ def load_data(argv, full=False):
         ("mfcc_16000", 23, 13),
         ("mfcc_32000", 11, 13),
         ("mfcc_64000", 4, 13),
-        ("wiener1spectro", 65, 30),
+        #("wiener1spectro", 65, 30),
     ]
 
     def _load(datasets, prefix="data/train_"):
@@ -57,13 +59,15 @@ def load_data(argv, full=False):
             all_arrays.append(X)
 
         X = np.hstack(all_arrays)
+        print "X.shape =", X.shape
 
         return X
 
     try:
         n_features = int(argv[0]) # will fail if string; this is fine
         argv.pop(0) 
-        importances = np.loadtxt("feature-importances-rf2.txt")
+        importances = np.loadtxt("feature-importances-rf-flat.txt")
+        print "importances.shape =", importances.shape
         indices = np.argsort(importances)[::-1]
         indices = indices[:n_features]
     except:
@@ -110,9 +114,9 @@ def build_randomforest(argv, n_features):
 
     parameters = {
         "n_estimators": int(argv[0]),
-        #"max_features": int(argv[1]),
+        "max_features": int(argv[1]),
         "min_samples_split": int(argv[2]),
-        "n_jobs": 3,
+        "n_jobs": 4,
     }
 
     clf = RandomForestClassifier(**parameters)
@@ -129,6 +133,8 @@ def build_gbrt(argv, n_features):
         "learning_rate": float(argv[2]),
         "max_features": float(argv[3]),
         "min_samples_split": int(argv[4]),
+        "subsample": float(argv[5]),
+        #"verbose": 3
     }
 
     clf = GradientBoostingClassifier(**parameters)
@@ -193,7 +199,7 @@ if __name__ == "__main__":
     if y_test is not None:
         print "AUC =", auc_scorer(clf, X_test, y_test)
 
-    np.savetxt("feature-importances-rf2.txt", clf.feature_importances_)
+    #np.savetxt("feature-importances-rf4.txt", clf.feature_importances_)
     
     # Save predictions
     if y_test is None:
