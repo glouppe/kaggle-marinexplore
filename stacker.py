@@ -12,6 +12,7 @@ def load_data(prefix="train"):
         np.loadtxt("stacks/adaboost-500-%s.txt" % prefix),
         np.loadtxt("stacks/rf-1000-%s.txt" % prefix),
         np.loadtxt("stacks/et-500-%s.txt" % prefix),
+        np.loadtxt("stacks/dbn-500-500-250-%s.txt" % prefix),
         np.mean(np.hstack([np.loadtxt("stacks/gbrt-500-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 21)]), axis=1),
         np.mean(np.hstack([np.loadtxt("stacks/gbrt-500-old-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 21)]), axis=1),
         np.mean(np.hstack([np.loadtxt("stacks/gbrt-2500-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 6)]), axis=1),
@@ -32,16 +33,16 @@ from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.grid_search import GridSearchCV
 
 X_train, y_train = load_data("train")
-uniques = np.loadtxt("train-uniques.txt").astype(np.int)
-X_train = X_train[uniques]
-y_train = y_train[uniques]
+#uniques = np.loadtxt("train-uniques.txt").astype(np.int)
+#X_train = X_train[uniques]
+#y_train = y_train[uniques]
 
 params = {
     "n_estimators": [500],
     "max_depth": [4],
-    "subsample": [0.95, 0.94, 0.96],
-    "learning_rate": [0.0025], #np.linspace(0.0005, 0.005, num=10),
-    "max_features": [4]
+    "subsample": [0.95],
+    "learning_rate": np.linspace(0.0005, 0.005, num=10),
+    "max_features": [6, 7, 8]
 }
 
 clf = GridSearchCV(GradientBoostingClassifier(), params, cv=3, scoring="roc_auc", verbose=3, n_jobs=12)
@@ -59,5 +60,5 @@ for i in range(50):
     c.fit(X_train, y_train)
     decisions += c.decision_function(X_test)[:, 0]
     
-np.savetxt("stacking5.txt", decisions)
+np.savetxt("stacking6.txt", decisions)
 

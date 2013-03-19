@@ -17,6 +17,6 @@ export LD_RUN_PATH=/home/volatile/glouppe/local/lib:$LD_RUN_PATH
 export PATH=/home/volatile/glouppe/local/bin:$PATH
 export PYTHONPATH=/home/volatile/glouppe/src/scikit-learn:$PYTHONPATH
 
-python grid.py $@
+python grid-dbn.py $@
 
 

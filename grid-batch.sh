@@ -33,7 +33,7 @@ for n_features in 2000
 do
 for max_depth in 8 
 do
-for max_features in 0.01 0.05 0.1
+for max_features in  0.5 0.75 1.0    # 0.01 0.05 0.1
 do
 for learning_rate in  0.13  
 do
@@ -42,7 +42,7 @@ do
 for subsample in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
 do
 
-qsub -o grid/gbrt -e grid/gbrt grid-job.sh $n_features gbrt $n_estimators $max_depth $learning_rate $max_features $min_samples_split $subsample
+echo qsub -o grid/gbrt -e grid/gbrt grid-job.sh $n_features gbrt $n_estimators $max_depth $learning_rate $max_features $min_samples_split $subsample
 
 done
 done
@@ -52,27 +52,13 @@ done
 done
 
 # DBN
+#500-500-250 200 20 1.0 [0.0001,0.01,0.01,0.01]
 
-for clip in 1000
+for learn_rates in 1.0 0.9 0.8 0.7 0.6 0.5 
 do
-for epochs in 50
-do
-for units in 300 400 500
-do
-for learn_rates in  0.008 0.007 0.006 0.005 0.004
-do
-for momentum in 0.1 0.08 0.06 0.04
-do
-for nc in 10
-do
-
-echo qsub -o grid/dbn -e grid/dbn grid-job.sh $clip $nc dbn $units-$units-$units $epochs $learn_rates $momentum
-
-done
-done
-done
-done
-done
+qsub -o grid/dbn -e grid/dbn grid-job.sh 2000 dbn 500-500-500-500-250 100 10 $learn_rates [0.0001,0.01,0.01,0.1]
+qsub -o grid/dbn -e grid/dbn grid-job.sh 2000 dbn 500-500-500-250 100 10 $learn_rates [0.0001,0.01,0.01,0.1]
+qsub -o grid/dbn -e grid/dbn grid-job.sh 2000 dbn 500-500-250 100 10 $learn_rates [0.0001,0.01,0.01,0.1]
 done
 
 # Multiframe

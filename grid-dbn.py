@@ -4,7 +4,7 @@
 import numpy as np
 import sys
 
-from sklearn.cross_validation import train_test_split, KFold
+from sklearn.cross_validation import train_test_split
 from sklearn.metrics.scorer import auc_scorer
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.preprocessing import normalize, scale, StandardScaler
@@ -17,7 +17,7 @@ from transform import FuncTransformer
 from transform.pool import PoolTransformer
 
 
-def load_data(argv):
+def load_data(argv, full=False):
     tf = Pipeline([
             #("func", FuncTransformer(normalize, axis=1, norm="l2", copy=False)),
             ("union", FeatureUnion([
@@ -36,13 +36,13 @@ def load_data(argv):
         ("specs_8000", 48, 17),
         ("ceps_16000", 23, 9),
         ("specs_16000", 23, 21),
-        # ("ceps_32000", 11, 9),
-        # ("specs_32000", 11, 25),
+        #("ceps_32000", 11, 9),
+        #("specs_32000", 11, 25),
         ("mfcc_8000", 48, 13),
         ("mfcc_16000", 23, 13),
         ("mfcc_32000", 11, 13),
         ("mfcc_64000", 4, 13),
-        # ("wiener1spectro", 65, 30),
+        #("wiener1spectro", 65, 30),
     ]
 
     def _load(datasets, prefix="data/train_"):
@@ -65,7 +65,7 @@ def load_data(argv):
 
     try:
         n_features = int(argv[0]) # will fail if string; this is fine
-        argv.pop(0)
+        argv.pop(0) 
         importances = np.loadtxt("feature-importances-rf.txt")
         print "importances.shape =", importances.shape
         indices = np.argsort(importances)[::-1]
@@ -73,33 +73,26 @@ def load_data(argv):
     except:
         indices = None
 
-    # Train set
-    data = np.load("data/train.npz")
-    y_train = data["y_train"]
-    X_train = _load(datasets, prefix="data/train_")
-    if indices is not None:
-        X_train = X_train[:, indices]
+    if not full:
+        data = np.load("data/train.npz")
+        y = data["y_train"]
+        X = _load(datasets, prefix="data/train_")
+        if indices is not None:
+            X = X[:, indices]
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42)
 
-    # Test set
-    y_test = None
-    X_test = _load(datasets, prefix="data/test_")
-    if indices is not None:
-        X_test = X_test[:, indices]
+    else:
+        data = np.load("data/train.npz")
+        y_train = data["y_train"]
+        X_train = _load(datasets, prefix="data/train_")
+        if indices is not None:
+            X_train = X_train[:, indices]
+        X_test = _load(datasets, prefix="data/test_")
+        if indices is not None:
+            X_test = X_test[:, indices]
+        y_test = None
 
     return X_train, X_test, y_train, y_test
-
-
-def build_adaboost(argv, n_features):
-    from sklearn.ensemble import AdaBoostClassifier
-
-    parameters = {
-        "n_estimators": int(argv[0]),
-    }
-
-    clf = AdaBoostClassifier(**parameters)
-
-    return clf
-
 
 
 def build_extratrees(argv, n_features):
@@ -121,7 +114,7 @@ def build_randomforest(argv, n_features):
 
     parameters = {
         "n_estimators": int(argv[0]),
-        #"max_features": int(argv[1]),
+        "max_features": int(argv[1]),
         "min_samples_split": int(argv[2]),
         "n_jobs": 4,
     }
@@ -167,7 +160,7 @@ def build_dbn(argv, n_features):
         "l2_costs": 0.0,
         "l2_costs_pretrain": 0.0001,
         "momentum": 0.9,
-        "verbose": 0,
+        "verbose": 1,
         "real_valued_vis": True,
         "use_re_lu": False,
         "scales": 0.01,
@@ -189,7 +182,7 @@ if __name__ == "__main__":
 
     # Load data
     print "Loading data..."
-    X_train, X_test, y_train, y_test = load_data(argv)
+    X_train, X_test, y_train, y_test = load_data(argv, full=False)
     print "X_train.shape =", X_train.shape
     print "y_train.shape =", y_train.shape
 
@@ -198,28 +191,17 @@ if __name__ == "__main__":
     clf = locals()["build_%s" % argv[0]](argv[1:], n_features=X_train.shape[1])
     print clf
 
-    # Build predictions on train set
-    print "KFold..."
-
-    y_train_proba = np.zeros(y_train.shape)
-
-    for train, test in KFold(n=len(y_train), n_folds=3, random_state=42, shuffle=True):
-        clf.fit(X_train[train], y_train[train])
-
-        if hasattr(clf, "decision_function"):
-            y_train_proba[test] = clf.decision_function(X_train[test])
-        else:
-            y_train_proba[test] = clf.predict_proba(X_train[test])[:, 1]
-
-    np.savetxt("%s-train.txt" % argv[-1], y_train_proba)
-
-    # Build predictions on test set
+    # Estimator training
     print "Training..."
     clf.fit(X_train, y_train)
 
-    if hasattr(clf, "decision_function"):
-        y_test = clf.decision_function(X_test)
-    else:
-        y_test = clf.predict_proba(X_test)[:, 1]
+    # AUC
+    if y_test is not None:
+        print "AUC =", auc_scorer(clf, X_test, y_test)
 
-    np.savetxt("%s-test.txt" % argv[-1], y_test)
+    #np.savetxt("feature-importances-rf4.txt", clf.feature_importances_)
+    
+    # Save predictions
+    if y_test is None:
+        np.savetxt(argv[-1], clf.decision_function(X_test))
+
