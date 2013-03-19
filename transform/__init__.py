@@ -34,6 +34,7 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
 
     def __init__(self, pad_to=None, NFFT=256, noverlap=200,
                  clip=1000.0, dtype=np.float32,
+                 Fs=2000,
                  log=True, flatten=True, transpose=False,
                  window=None):
         self.pad_to = pad_to
@@ -47,6 +48,7 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
         self.flatten = flatten
         self.transpose = transpose
         self.window = window
+        self.Fs = Fs
 
     def fit(self, X, y=None, **fit_args):
         return self
@@ -61,7 +63,7 @@ class SpectrogramTransformer(BaseEstimator, TransformerMixin):
             window = mlab.window_none
 
         for i, X_i in enumerate(X):
-            Pxx, freqs, _ = mlab.specgram(X_i, NFFT=self.NFFT, Fs=2000,
+            Pxx, freqs, _ = mlab.specgram(X_i, NFFT=self.NFFT, Fs=self.Fs,
                                           pad_to=self.pad_to,
                                           noverlap=self.noverlap,
                                           window=window)
@@ -148,6 +150,53 @@ class WhitenerTransformer(BaseEstimator, TransformerMixin):
             return _X, _y
 
 
+
+class PCANoiseTransformer(BaseEstimator, TransformerMixin):
+    def __init__(self, n_components=None, label=0, subtract=True):
+        self.n_components = n_components
+        self.label = label
+        self.subtract = subtract
+
+    def fit(self, X, y=None, **fit_args):
+        _X, _y = self._flatten(X, y)
+
+        if self.label != -1:
+            mask = _y == self.label
+            print('|mask| = %d' % mask.sum())
+            _X = _X[mask]
+            _y = _y[mask]
+
+        self.pca = PCA(n_components=self.n_components)
+        self.pca.fit(_X, _y)
+
+        return self
+
+    def transform(self, X):
+        _X = self._flatten(X)
+
+        _X_rc = self.pca.transform(_X)
+        _X_rc = self.pca.inverse_transform(_X_rc)
+
+        if self.subtract:
+            _X = _X - _X_rc
+        else:
+            _X = _X_rc
+
+        return _X.reshape(list(X.shape[:-1]) + [-1])
+
+    def _flatten(self, X, y=None, axis=1):
+        shape = X.shape
+        _X = X.reshape([shape[0] * shape[1]] + list(shape[2:]))
+
+        if y is None:
+            return _X
+
+        else:
+            _y = np.hstack(y for i in range(shape[1]))
+            return _X, _y
+
+
+
 class FlattenTransformer(BaseEstimator, TransformerMixin):
     """Flattens X from 3d to 2d."""
 
@@ -226,15 +275,16 @@ class DiffTransformer(BaseEstimator, TransformerMixin):
     >>> X = tf.fit_transform(X)
     """
 
-    def __init__(self, n=1, flatten=False):
+    def __init__(self, n=1, axis=1, flatten=False):
         self.n = n
         self.flatten = flatten
+        self.axis = axis
 
     def fit(self, X, y=None, **fit_args):
         return self
 
     def transform(self, X):
-        diff = np.diff(X, n=self.n, axis=1)
+        diff = np.diff(X, n=self.n, axis=self.axis)
         if self.flatten:
-            diff = diff.reshape((diff.shape[0], diff.shape[1] * diff.shape[2]))
+            diff = diff.reshape((diff.shape[0], -1))
         return diff
