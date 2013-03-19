@@ -27,7 +27,7 @@ def chunked_predict_proba(dbn, X, n_chunks=100):
     act : np.ndarray, shape = (X.shape[0], n_hidden_units)
         The activations of the last hidden layer of ``dbn``.
     """
-    proba = np.empty((X.shape[0], 2), dtype=np.float64)
+    proba = np.empty((X.shape[0],), dtype=np.float64)
     start = 0
     chunk_size = int(np.ceil(X.shape[0] / float(n_chunks)))
     print "chunk_size: ", chunk_size
@@ -212,6 +212,7 @@ if __name__ == "__main__":
     y_train_proba = np.zeros(y_train.shape)
 
     for train, test in KFold(n=len(y_train), n_folds=3, random_state=42, shuffle=True):
+        print "Processing Fold..."
         clf.fit(X_train[train], y_train[train])
 
         if argv[0] == 'dbn':
