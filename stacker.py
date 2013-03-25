@@ -39,6 +39,7 @@ def load_data(prefix="train"):
 
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.grid_search import GridSearchCV
+from sklearn.cross_validation import KFold
 
 X_train, y_train = load_data("train")
 #uniques = np.loadtxt("train-uniques.txt").astype(np.int)
@@ -46,20 +47,23 @@ X_train, y_train = load_data("train")
 #y_train = y_train[uniques]
 
 params = {
-    "n_estimators": [1000],
-    "max_depth": [3, 4, 5],
-    "learning_rate": np.linspace(0.003, 0.004, num=10),
-    "max_features": [8, 9]
+    "n_estimators": [500],
+    "max_depth": [5],
+    "learning_rate": [0.02, 0.004],
+    "subsample": [1.0],
+    "min_samples_split": [21],
 }
 
-clf = GridSearchCV(GradientBoostingClassifier(), params, cv=3, scoring="roc_auc", verbose=3, n_jobs=12)
+cv = KFold(X_train.shape[0], 3, shuffle=True, random_state=13)
+clf = GridSearchCV(GradientBoostingClassifier(random_state=13), params,
+                   cv=cv, scoring="roc_auc", verbose=3, n_jobs=3)
 clf.fit(X_train, y_train)
 
 print clf.best_score_
 print clf.best_params_
 
 X_test, _ = load_data("test")
-decisions = np.zeros(X_test.shape[0]) 
+decisions = np.zeros(X_test.shape[0])
 
 for i in range(50):
     print "Estimator %d" % i
@@ -69,6 +73,5 @@ for i in range(50):
 
 print clf.best_params_
 print clf.best_score_
-    
-np.savetxt("stacking8-magic.txt", decisions)
 
+np.savetxt("stacking8-magic.txt", decisions)
