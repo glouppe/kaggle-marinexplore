@@ -8,13 +8,21 @@ from sklearn.metrics.scorer import auc_scorer
 
 
 def load_data(prefix="train"):
+    if prefix == "train":
+        n = 30000
+    else:
+        n = 54503
+
     X = np.hstack([v.reshape((-1, 1)) for v in [
+        np.arange(n, dtype=np.float) / n,
         np.loadtxt("stacks/adaboost-500-%s.txt" % prefix),
         np.loadtxt("stacks/rf-1000-%s.txt" % prefix),
         np.loadtxt("stacks/et-500-%s.txt" % prefix),
         np.loadtxt("stacks/dbn-500-500-250-%s.txt" % prefix),
+        np.loadtxt("stacks/dbn-2000-%s.txt" % prefix),
+        np.mean(np.hstack([np.loadtxt("stacks/dbn-1200-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 21)]), axis=1),
         np.mean(np.hstack([np.loadtxt("stacks/gbrt-500-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 21)]), axis=1),
-        np.mean(np.hstack([np.loadtxt("stacks/gbrt-500-old-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 21)]), axis=1),
+        np.mean(np.hstack([np.loadtxt("stacks/gbrt-500-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 21)]), axis=1),
         np.mean(np.hstack([np.loadtxt("stacks/gbrt-2500-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 6)]), axis=1),
         np.mean(np.hstack([np.loadtxt("stacks/gbrt-2500-old-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 11)]), axis=1),
     ]])
@@ -38,11 +46,10 @@ X_train, y_train = load_data("train")
 #y_train = y_train[uniques]
 
 params = {
-    "n_estimators": [500],
-    "max_depth": [4],
-    "subsample": [0.95],
-    "learning_rate": np.linspace(0.0005, 0.005, num=10),
-    "max_features": [6, 7, 8]
+    "n_estimators": [1000],
+    "max_depth": [3, 4, 5],
+    "learning_rate": np.linspace(0.003, 0.004, num=10),
+    "max_features": [8, 9]
 }
 
 clf = GridSearchCV(GradientBoostingClassifier(), params, cv=3, scoring="roc_auc", verbose=3, n_jobs=12)
@@ -59,6 +66,9 @@ for i in range(50):
     c = GradientBoostingClassifier(**clf.best_params_)
     c.fit(X_train, y_train)
     decisions += c.decision_function(X_test)[:, 0]
+
+print clf.best_params_
+print clf.best_score_
     
-np.savetxt("stacking6.txt", decisions)
+np.savetxt("stacking8-magic.txt", decisions)
 

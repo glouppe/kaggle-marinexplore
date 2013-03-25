@@ -54,11 +54,9 @@ done
 # DBN
 #500-500-250 200 20 1.0 [0.0001,0.01,0.01,0.01]
 
-for learn_rates in 1.0 0.9 0.8 0.7 0.6 0.5 
+for features in 1000 1200 1400 1600 1800 2000 2200 2400 2600
 do
-qsub -o grid/dbn -e grid/dbn grid-job.sh 2000 dbn 500-500-500-500-250 100 10 $learn_rates [0.0001,0.01,0.01,0.1]
-qsub -o grid/dbn -e grid/dbn grid-job.sh 2000 dbn 500-500-500-250 100 10 $learn_rates [0.0001,0.01,0.01,0.1]
-qsub -o grid/dbn -e grid/dbn grid-job.sh 2000 dbn 500-500-250 100 10 $learn_rates [0.0001,0.01,0.01,0.1]
+qsub -o grid/dbn -e grid/dbn grid-job.sh $features dbn 500-500-500-250 200 20 0.6 [0.0001,0.01,0.01,0.1,0.1]
 done
 
 # Multiframe
