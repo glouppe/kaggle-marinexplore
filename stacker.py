@@ -54,24 +54,40 @@ params = {
     "min_samples_split": [21],
 }
 
-cv = KFold(X_train.shape[0], 3, shuffle=True, random_state=13)
-clf = GridSearchCV(GradientBoostingClassifier(random_state=13), params,
-                   cv=cv, scoring="roc_auc", verbose=3, n_jobs=3)
+import ranking
+from sklearn.metrics import auc_score
+
+ind = np.arange(X_train.shape[0])
+X_train, X_test, y_train, y_test, ind_train, ind_test = train_test_split(
+    X_train, y_train, ind, test_size=0.5, random_state=42)
+
+## clf = ranking.BalancedGBRT(n_estimators=500, max_depth=5, learning_rate=0.02,
+##                            min_samples_split=21, verbose=0)
+clf = GradientBoostingClassifier(n_estimators=500, max_depth=5,
+                                 learning_rate=0.02, min_samples_split=21,
+                                 verbose=11)
+
+## cv = KFold(X_train.shape[0], 3, shuffle=True, random_state=13)
+## clf = GridSearchCV(GradientBoostingClassifier(random_state=13), params,
+##                    cv=cv, scoring="roc_auc", verbose=3, n_jobs=3)
 clf.fit(X_train, y_train)
 
-print clf.best_score_
-print clf.best_params_
+y_scores = clf.decision_function(X_test)
+print "AUC: %.6f" % auc_score(y_test, y_scores)
 
-X_test, _ = load_data("test")
-decisions = np.zeros(X_test.shape[0])
+## print clf.best_score_
+## print clf.best_params_
 
-for i in range(50):
-    print "Estimator %d" % i
-    c = GradientBoostingClassifier(**clf.best_params_)
-    c.fit(X_train, y_train)
-    decisions += c.decision_function(X_test)[:, 0]
+## X_test, _ = load_data("test")
+## decisions = np.zeros(X_test.shape[0])
 
-print clf.best_params_
-print clf.best_score_
+## for i in range(50):
+##     print "Estimator %d" % i
+##     c = GradientBoostingClassifier(**clf.best_params_)
+##     c.fit(X_train, y_train)
+##     decisions += c.decision_function(X_test)[:, 0]
 
-np.savetxt("stacking8-magic.txt", decisions)
+## print clf.best_params_
+## print clf.best_score_
+
+## np.savetxt("stacking8-magic.txt", decisions)

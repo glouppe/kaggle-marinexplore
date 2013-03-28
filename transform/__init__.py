@@ -217,14 +217,7 @@ class FilterTransformer(BaseEstimator, TransformerMixin):
 
 
 class DiffTransformer(BaseEstimator, TransformerMixin):
-    """Applies a filter function to each row in ``X``
-
-    Example
-    -------
-
-    >>> tf = FilterTransformer(scipy.signal.wiener)
-    >>> X = tf.fit_transform(X)
-    """
+    """Difference features (aka delta's). """
 
     def __init__(self, n=1, flatten=False):
         self.n = n
