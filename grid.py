@@ -36,8 +36,8 @@ def load_data(argv, full=False):
         ("specs_8000", 48, 17),
         ("ceps_16000", 23, 9),
         ("specs_16000", 23, 21),
-        ("ceps_32000", 11, 9),
-        ("specs_32000", 11, 25),
+        #("ceps_32000", 11, 9),
+        #("specs_32000", 11, 25),
         ("mfcc_8000", 48, 13),
         ("mfcc_16000", 23, 13),
         ("mfcc_32000", 11, 13),
@@ -66,7 +66,7 @@ def load_data(argv, full=False):
     try:
         n_features = int(argv[0]) # will fail if string; this is fine
         argv.pop(0) 
-        importances = np.loadtxt("feature-importances-rf-flat.txt")
+        importances = np.loadtxt("feature-importances-rf.txt")
         print "importances.shape =", importances.shape
         indices = np.argsort(importances)[::-1]
         indices = indices[:n_features]
@@ -122,6 +122,33 @@ def build_randomforest(argv, n_features):
     clf = RandomForestClassifier(**parameters)
 
     return clf
+
+
+def build_knn(argv, n_features):
+    from sklearn.neighbors import KNeighborsClassifier
+
+    parameters = {
+        "n_neighbors": int(argv[0]),
+    }
+
+    clf = KNeighborsClassifier(**parameters)
+
+    return clf
+
+def build_linearsvc(argv, n_features):
+    from sklearn.svm import LinearSVC
+
+    parameters = {
+        "C": float(argv[0]),
+        "loss": argv[1],
+        "penalty": argv[2]
+    }
+
+    clf = LinearSVC(**parameters)
+
+    return clf
+
+
 
 
 def build_gbrt(argv, n_features):

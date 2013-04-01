@@ -56,20 +56,23 @@ done
 
 for features in 1000 1200 1400 1600 1800 2000 2200 2400 2600
 do
-qsub -o grid/dbn -e grid/dbn grid-job.sh $features dbn 500-500-500-250 200 20 0.6 [0.0001,0.01,0.01,0.1,0.1]
+echo qsub -o grid/dbn -e grid/dbn grid-job.sh $features dbn 500-500-500-250 200 20 0.6 [0.0001,0.01,0.01,0.1,0.1]
 done
 
-# Multiframe
+# linear
 
-for nftt in 1024 2048
+for n_features in 5000 6000 7000 8000
 do
-for noverlap in 0 32 64 128 256 512 768
+for C in 12.0 11.0 10.0 9.0 8.0 
 do
-for clip in 100 250 500 1000
+for loss in l1 
+do
+for pen in l2
 do
 
-echo qsub -o grid/multi -e grid/multi grid-job.sh $nftt $noverlap $clip
+qsub -o grid/linearsvc -e grid/linearsvc grid-job.sh $n_features linearsvc $C $loss $pen
 
+done
 done
 done
 done

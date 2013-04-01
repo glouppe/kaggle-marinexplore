@@ -86,6 +86,7 @@ def load_data(prefix="train"):
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.grid_search import GridSearchCV
+from sklearn.cross_validation import KFold
 
 X_train, y_train = load_data("train")
 
@@ -113,6 +114,7 @@ print clf.best_params_
 
 
 X_test, _ = load_data("test")
+decisions = np.zeros(X_test.shape[0])
 
 np.savetxt("stacking15.txt", clf.best_estimator_.decision_function(X_test)[:, 0])
 
@@ -126,4 +128,3 @@ for i in range(10):
     decisions += c.decision_function(X_test)[:, 0]
 
 np.savetxt("stacking15-all.txt", decisions)
-
