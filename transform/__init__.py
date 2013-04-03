@@ -262,22 +262,44 @@ class LogTransformer(BaseEstimator, TransformerMixin):
 
 class TemplateMatcher(BaseEstimator, TransformerMixin):
 
+    def __init__(self, raw=True):
+        self.raw = raw
+
     def fit(self, X, y=None, **fit_args):
         X_pos = X[y == 1]
 
         # median pos image
-        self.template = np.mean(X_pos, axis=0)[10:30, 5:20]
+        self.template = [np.mean(X_pos, axis=0)[10:30, 5:20],
+                         np.mean(X_pos, axis=0)[5:35, 5:20],
+                         np.mean(X_pos, axis=0)[10:30, 2:25],
+                         np.mean(X_pos, axis=0)[5:35, 2:25]
+                         ]
         return self
 
     def transform(self, X):
         from skimage.feature import match_template
         X_out = None
+        n_templates = len(self.template)
+        raw = self.raw
         for i, x in enumerate(X):
             if i % 1000 == 0:
                 print i
-            result = match_template(x, self.template, pad_input=False)
-            if X_out is None:
-                X_out = np.empty((X.shape[0], result.shape[0], result.shape[1]),
-                                 dtype=np.float32)
-            X_out[i] = result
+
+            for j, template in enumerate(self.template):
+                result = match_template(x, template, pad_input=True)
+                if X_out is None:
+                    if raw:
+                        dtype = (X.shape[0], n_templates, result.shape[0],
+                                 result.shape[1])
+                    else:
+                        dtype = (X.shape[0], n_templates)
+                    X_out = np.empty(dtype, dtype=np.float32)
+
+                if not raw:
+                    result = np.max(result)
+
+                X_out[i, j] = result
+
+        if raw:
+            X_out = np.max(X_out, axis=1)
         return X_out

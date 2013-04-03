@@ -2,19 +2,21 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import sys
 
 from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.svm import LinearSVC
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics.scorer import auc_scorer
-from sklearn.pipeline import FeatureUnion
+from sklearn.pipeline import FeatureUnion, Pipeline
+from sklearn.base import clone
 from scipy.io import loadmat
 
 from transform import FlattenTransformer
 from transform import StatsTransformer
+from transform import DiffTransformer
 from transform.peaks import PeaksTransformer
 
-generate_report = True
+generate_report = False
 
 
 def load_data(full=False):
@@ -23,14 +25,28 @@ def load_data(full=False):
     n_samples = len(y)
     ind = np.arange(y.shape[0])
 
+    sub_tf = FeatureUnion([
+        ('spec', FlattenTransformer(scale=1.0)),
+        #('st1', StatsTransformer(axis=1)),
+        #('st0', StatsTransformer(axis=0))
+        ])
+
     tf = FeatureUnion([
         ('spec', FlattenTransformer(scale=1.0)),
         ('st1', StatsTransformer(axis=1)),
         ('st0', StatsTransformer(axis=0)),
-    ])
+        ('diff1', Pipeline([('diff1', DiffTransformer(w=3)),
+                            ('sub_tf', clone(sub_tf)),
+                            ])),
+        ('diff2', Pipeline([('diff1', DiffTransformer(w=3)),
+                            ('diff2', DiffTransformer(w=3)),
+                            ('sub_tf', clone(sub_tf)),
+                            ])),
+
+         ])
 
     data = loadmat("data/train_specs.mat")
-    X_specs = data["train_specs"]
+    X_specs = np.log10(data["train_specs"])
     X_specs = X_specs.reshape((n_samples, 98, 13))
     X_specs = tf.transform(X_specs)
 
@@ -89,10 +105,13 @@ def load_data(full=False):
 
 X_train, X_test, y_train, y_test, ind_train, ind_test = load_data(full=False)
 
-clf = GradientBoostingClassifier(n_estimators=500, max_depth=6,
-                                 learning_rate=0.1, max_features=256,
-                                 min_samples_split=15, verbose=3,
-                                 random_state=13)
+## clf = GradientBoostingClassifier(n_estimators=500, max_depth=6,
+##                                  learning_rate=0.1, max_features=256,
+##                                  min_samples_split=15, verbose=3,
+##                                  random_state=13)
+
+clf = LinearSVC(C=0.00001, tol=0.001, dual=True, loss='l1')
+
 print('_' * 80)
 print('training')
 print

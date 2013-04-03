@@ -38,7 +38,7 @@ X_train, X_test, y_train, y_test, ind_train, ind_test = train_test_split(
 
 clf = GradientBoostingClassifier(n_estimators=250, max_depth=2,
                                  min_samples_leaf=17, learning_rate=0.1,
-                                 verbose=2)
+                                 verbose=0)
 
 # optimal C for raw w/o scaling is 0.00001
 # optimal C for stats w/o scaling is 0.00001
@@ -52,13 +52,19 @@ clf = GradientBoostingClassifier(n_estimators=250, max_depth=2,
 ##     ('svm', clf)
 ##     ])
 
+fu = FeatureUnion([
+        #('spec', FlattenTransformer(scale=1.0)),
+        ('st1', StatsTransformer(axis=1)),
+        #('st0', StatsTransformer(axis=0))
+    ])
+
 tf = Pipeline(steps=[('specg', SpectrogramTransformer(NFFT=256, clip=500,
                                                noverlap=0.5,
                                                dtype=np.float32,
                                                log=False, flatten=False)),
-                     #('tm', TemplateMatcher()),
-                     #('flatten', FlattenTransformer()),
-                     ('max', StatsTransformer(axis=1))
+                     ('tm', TemplateMatcher(raw=True)),
+                     ('flatten', FlattenTransformer()),
+                     #('fu', fu),
                      ])
 
 print('_' * 80)
