@@ -269,10 +269,11 @@ class TemplateMatcher(BaseEstimator, TransformerMixin):
         X_pos = X[y == 1]
 
         # median pos image
-        self.template = [np.mean(X_pos, axis=0)[10:30, 5:20],
-                         np.mean(X_pos, axis=0)[5:35, 5:20],
-                         np.mean(X_pos, axis=0)[10:30, 2:25],
-                         np.mean(X_pos, axis=0)[5:35, 2:25]
+        self.template = [
+            np.mean(X_pos, axis=0)[10:30, 5:20],
+            np.mean(X_pos, axis=0)[5:35, 5:20],
+            np.mean(X_pos, axis=0)[10:30, 2:25],
+            np.mean(X_pos, axis=0)[5:35, 2:25],
                          ]
         return self
 

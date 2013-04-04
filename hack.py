@@ -36,21 +36,21 @@ X_train, X_test, y_train, y_test, ind_train, ind_test = train_test_split(
             X, y, ind, test_size=0.5, random_state=42)
 
 
-clf = GradientBoostingClassifier(n_estimators=250, max_depth=2,
-                                 min_samples_leaf=17, learning_rate=0.1,
-                                 verbose=0)
+## clf = GradientBoostingClassifier(n_estimators=250, max_depth=2,
+##                                  min_samples_leaf=17, learning_rate=0.1,
+##                                  verbose=0)
 
 # optimal C for raw w/o scaling is 0.00001
 # optimal C for stats w/o scaling is 0.00001
-## clf = LinearSVC(C=0.001, loss='l1', dual=True)
+clf = LinearSVC(C=0.001, loss='l1', dual=True)
 
 
 
 ## clf = SVMPerf(C=0.00000001, verbose=0, tol=0.001)
-## clf = Pipeline(steps=[
-##     ('scale', StandardScaler()),
-##     ('svm', clf)
-##     ])
+clf = Pipeline(steps=[
+    ('scale', StandardScaler()),
+    ('svm', clf)
+    ])
 
 fu = FeatureUnion([
         #('spec', FlattenTransformer(scale=1.0)),
@@ -62,8 +62,8 @@ tf = Pipeline(steps=[('specg', SpectrogramTransformer(NFFT=256, clip=500,
                                                noverlap=0.5,
                                                dtype=np.float32,
                                                log=False, flatten=False)),
-                     ('tm', TemplateMatcher(raw=True)),
-                     ('flatten', FlattenTransformer()),
+                     ('tm', TemplateMatcher(raw=False)),
+                     #('flatten', FlattenTransformer()),
                      #('fu', fu),
                      ])
 

@@ -12,12 +12,13 @@ from scipy.io import loadmat
 
 from transform import FlattenTransformer
 from transform import SpectrogramTransformer
+from transform import TemplateMatcher
 from transform import StatsTransformer
 from transform import FuncTransformer
 from transform.pool import PoolTransformer
 
 
-def load_data(argv):
+def load_data_old(argv):
     tf = Pipeline([
             #("func", FuncTransformer(normalize, axis=1, norm="l2", copy=False)),
             ("union", FeatureUnion([
@@ -89,6 +90,39 @@ def load_data(argv):
     return X_train, X_test, y_train, y_test
 
 
+def load_data(argv):
+    # Train set
+    data = np.load("data/train.npz")
+    y_train = data["y_train"]
+    X_train = data["X_train"]
+
+    fu = FeatureUnion([
+        #('spec', FlattenTransformer(scale=1.0)),
+        ('st1', StatsTransformer(axis=1)),
+        #('st0', StatsTransformer(axis=0))
+    ])
+
+    tf = Pipeline(steps=[('specg', SpectrogramTransformer(NFFT=256, clip=500,
+                                                          noverlap=0.5,
+                                                          dtype=np.float32,
+                                                          log=False, flatten=False)),
+                         ('tm', TemplateMatcher(raw=True)),
+                         #('flatten', FlattenTransformer()),
+                         ('fu', fu),
+                     ])
+
+    X_train = tf.fit_transform(X_train, y_train)
+
+
+    # Test set
+    data = np.load("data/test.npz")
+    y_test = None
+    X_test = data['X_test']
+    X_test = tf.transform(X_test)
+
+    return X_train, X_test, y_train, y_test
+
+
 def build_adaboost(argv, n_features):
     from sklearn.ensemble import AdaBoostClassifier
 
@@ -134,11 +168,15 @@ def build_randomforest(argv, n_features):
 def build_gbrt(argv, n_features):
     from sklearn.ensemble import GradientBoostingClassifier
 
+    if argv[3] == 'none':
+        max_features = None
+    else:
+        max_features = float(argv[3])
     parameters = {
         "n_estimators": int(argv[0]),
         "max_depth": int(argv[1]),
         "learning_rate": float(argv[2]),
-        "max_features": float(argv[3]),
+        "max_features": max_features,
         "min_samples_split": int(argv[4]),
         "subsample": float(argv[5]),
         #"verbose": 3
