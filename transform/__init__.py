@@ -5,6 +5,7 @@ import numpy as np
 
 from matplotlib import mlab
 from scipy.stats import skew
+from scipy import signal
 
 from sklearn.base import BaseEstimator
 from sklearn.base import TransformerMixin
@@ -99,7 +100,8 @@ class StatsTransformer(BaseEstimator, TransformerMixin):
         def percentile(a, axis=0, p=50):
             return np.percentile(a, p, axis=axis)
 
-        self.stats = [np.min, np.max, np.mean, np.var, np.median] #, np.ptp]
+        self.stats = [np.min, np.max, np.mean, np.var, np.median, np.ptp]
+        #self.stats = [np.max]
         self.axis = axis
 
     def fit(self, X, y=None, **fit_args):
@@ -217,24 +219,88 @@ class FilterTransformer(BaseEstimator, TransformerMixin):
 
 
 class DiffTransformer(BaseEstimator, TransformerMixin):
-    """Applies a filter function to each row in ``X``
+    """Difference features (aka delta's). """
 
-    Example
-    -------
-
-    >>> tf = FilterTransformer(scipy.signal.wiener)
-    >>> X = tf.fit_transform(X)
-    """
-
-    def __init__(self, n=1, flatten=False):
-        self.n = n
-        self.flatten = flatten
+    def __init__(self, w=9):
+        self.w = w
 
     def fit(self, X, y=None, **fit_args):
         return self
 
     def transform(self, X):
-        diff = np.diff(X, n=self.n, axis=1)
-        if self.flatten:
-            diff = diff.reshape((diff.shape[0], diff.shape[1] * diff.shape[2]))
-        return diff
+        hlen = int(np.floor(self.w / 2.0))
+        self.w = 2 * hlen + 1
+        win = np.arange(hlen, -(hlen + 1), -1)
+        out = np.zeros_like(X)
+
+        for i in xrange(X.shape[0]):
+            x = X[i]
+            # pad signal
+            A = np.tile(x[0, :], (hlen, 1))
+            C = np.tile(x[-1, :], (hlen, 1))
+            xx = np.r_[A, x, C]
+
+            # apply filter
+            d = signal.lfilter(win, 1, xx, axis=1)
+
+            # trim padding
+            d = d[hlen:-hlen]
+
+            out[i] = d
+
+        return out
+
+
+class LogTransformer(BaseEstimator, TransformerMixin):
+
+    def fit(self, X, y=None, **fit_args):
+        return self
+
+    def transform(self, X):
+        return np.log10(X)
+
+
+class TemplateMatcher(BaseEstimator, TransformerMixin):
+
+    def __init__(self, raw=True):
+        self.raw = raw
+
+    def fit(self, X, y=None, **fit_args):
+        X_pos = X[y == 1]
+
+        # median pos image
+        self.template = [
+            np.mean(X_pos, axis=0)[10:30, 5:20],
+            np.mean(X_pos, axis=0)[5:35, 5:20],
+            np.mean(X_pos, axis=0)[10:30, 2:25],
+            np.mean(X_pos, axis=0)[5:35, 2:25],
+                         ]
+        return self
+
+    def transform(self, X):
+        from skimage.feature import match_template
+        X_out = None
+        n_templates = len(self.template)
+        raw = self.raw
+        for i, x in enumerate(X):
+            if i % 1000 == 0:
+                print i
+
+            for j, template in enumerate(self.template):
+                result = match_template(x, template, pad_input=True)
+                if X_out is None:
+                    if raw:
+                        dtype = (X.shape[0], n_templates, result.shape[0],
+                                 result.shape[1])
+                    else:
+                        dtype = (X.shape[0], n_templates)
+                    X_out = np.empty(dtype, dtype=np.float32)
+
+                if not raw:
+                    result = np.max(result)
+
+                X_out[i, j] = result
+
+        if raw:
+            X_out = np.max(X_out, axis=1)
+        return X_out
