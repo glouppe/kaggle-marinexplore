@@ -8,6 +8,7 @@ from sklearn.base import TransformerMixin
 from sklearn.cross_validation import train_test_split
 from sklearn.cross_validation import KFold
 from sklearn.metrics.scorer import auc_scorer
+import sys
 
 class MagicTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, magic_column=0):
@@ -20,21 +21,22 @@ class MagicTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, X):
         all_features = []
+        rate = np.mean(self.y_)
 
-        for interval in [0.1, 0.05, 0.01, 0.005, 0.001]:
+        for interval in [0.1, 0.05, 0.01, 0.005, 0.0025]:
             avg_before = np.zeros(X.shape[0])
             avg_after = np.zeros(X.shape[0])
 
             for i, pos in enumerate(X[:, self.magic_column]):
                 m = np.mean(self.y_[(self.positions_ > pos - interval) & (self.positions_ < pos)])
                 if np.isnan(m) or np.isinf(m):
-                    avg_before[i] = 0.5
+                    avg_before[i] = rate
                 else:
                     avg_before[i] = m
                 
                 m = np.mean(self.y_[(self.positions_ < pos + interval) & (self.positions_ > pos)])
                 if np.isnan(m) or np.isinf(m):
-                    avg_after[i] = 0.5
+                    avg_after[i] = rate
                 else:
                     avg_after[i] = m
 
@@ -65,6 +67,7 @@ def load_data(prefix="train"):
         np.loadtxt("stacks/my-mfcc-%s.txt" % prefix),
         np.loadtxt("stacks/knn-1800-25-%s.txt" % prefix),
         np.loadtxt("stacks/linearsvc-8000-11-L1-L2-%s.txt" % prefix),
+        np.loadtxt("stacks/tm_gbrt_1-%s.txt" % prefix),
         #np.loadtxt("stacks/linearsvc-8000-11-L1-L2-magic-%s.txt" % prefix),
         np.mean(np.hstack([np.loadtxt("stacks/dbn-1200-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 21)]), axis=1),
         np.mean(np.hstack([np.loadtxt("stacks/gbrt-500-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 21)]), axis=1),
@@ -73,6 +76,9 @@ def load_data(prefix="train"):
         np.mean(np.hstack([np.loadtxt("stacks/gbrt-2500-old-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 11)]), axis=1),
         np.mean(np.hstack([np.loadtxt("stacks/gbrt-2500-magic-%d-%s.txt" % (i, prefix)).reshape((-1, 1))  for i in range(1, 21)]), axis=1),
     ]])
+
+    data = np.load("data/1200.npz")
+    X = np.hstack((X, (data["X_%s" % prefix])[:, :int(sys.argv[1])]))
 
     if prefix == "train":
         data = np.load("data/train.npz")
@@ -90,6 +96,8 @@ from sklearn.cross_validation import KFold
 
 X_train, y_train = load_data("train")
 
+print X_train.shape
+
 pipe = Pipeline([
         ("magic", MagicTransformer()),
         ("clf", GradientBoostingClassifier(random_state=13))
@@ -98,14 +106,14 @@ pipe = Pipeline([
 params = {
     "clf__n_estimators": [1000],
     "clf__max_depth": [5],
-    "clf__min_samples_split": [28, 29, 30],
-    "clf__learning_rate": np.linspace(0.013, 0.015, num=5), #0.010888],
-    "clf__max_features": [0.1, 0.15, 0.2],
+    "clf__min_samples_split": [25],
+    "clf__learning_rate": [0.0135], #np.linspace(0.012, 0.013, num=5), #0.010888],
+    "clf__max_features": [3, 4],
     "clf__subsample": [0.895] #np.linspace(0.89, 0.9, num=3)
 }
 
 cv = KFold(X_train.shape[0], 3, shuffle=True, random_state=13)
-clf = GridSearchCV(pipe, params, cv=cv, scoring="roc_auc", verbose=3, n_jobs=12)
+clf = GridSearchCV(pipe, params, cv=cv, scoring="roc_auc", verbose=3, n_jobs=10)
 clf.fit(X_train, y_train)
 
 print clf.best_score_
@@ -116,15 +124,15 @@ print clf.best_params_
 X_test, _ = load_data("test")
 decisions = np.zeros(X_test.shape[0])
 
-np.savetxt("stacking15.txt", clf.best_estimator_.decision_function(X_test)[:, 0])
-
+#np.savetxt("stacking21-%d.txt" % int(sys.argv[1]), clf.best_estimator_.decision_function(X_test)[:, 0])
 decisions = np.zeros(X_test.shape[0])
 
-for i in range(10):
+for i in range(20):
     print "Estimator %d" % i
     c = clf.best_estimator_
-    c.set_params(clf__random_state=i)
+    c.set_params(clf__random_state=40+i)
     c.fit(X_train, y_train)
     decisions += c.decision_function(X_test)[:, 0]
+    #np.savetxt("stacking20-%d.txt" % i, decisions)
 
-np.savetxt("stacking15-all.txt", decisions)
+np.savetxt("stacking21-all-c.txt", decisions)
