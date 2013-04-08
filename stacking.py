@@ -18,7 +18,7 @@ from transform import FuncTransformer
 from transform.pool import PoolTransformer
 
 
-def load_data_old(argv):
+def load_data(argv):
     tf = Pipeline([
             #("func", FuncTransformer(normalize, axis=1, norm="l2", copy=False)),
             ("union", FeatureUnion([
@@ -80,17 +80,19 @@ def load_data_old(argv):
     X_train = _load(datasets, prefix="data/train_")
     if indices is not None:
         X_train = X_train[:, indices]
+    X_train[:, -1] = np.arange(30000, dtype=np.float)/30000.
 
     # Test set
     y_test = None
     X_test = _load(datasets, prefix="data/test_")
     if indices is not None:
         X_test = X_test[:, indices]
+    X_test[:, -1] = np.arange(54503, dtype=np.float)/54503.
 
     return X_train, X_test, y_train, y_test
 
 
-def load_data(argv):
+def load_data_template(argv):
     # Train set
     data = np.load("data/train.npz")
     y_train = data["y_train"]
@@ -123,6 +125,20 @@ def load_data(argv):
     return X_train, X_test, y_train, y_test
 
 
+def build_linearsvc(argv, n_features):
+    from sklearn.svm import LinearSVC
+
+    parameters = {
+        "C": float(argv[0]),
+        "loss": argv[1],
+        "penalty": argv[2]
+    }
+
+    clf = LinearSVC(**parameters)
+
+    return clf
+
+
 def build_adaboost(argv, n_features):
     from sklearn.ensemble import AdaBoostClassifier
 
@@ -131,6 +147,17 @@ def build_adaboost(argv, n_features):
     }
 
     clf = AdaBoostClassifier(**parameters)
+
+    return clf
+
+def build_knn(argv, n_features):
+    from sklearn.neighbors import KNeighborsClassifier
+
+    parameters = {
+        "n_neighbors": int(argv[0]),
+    }
+
+    clf = KNeighborsClassifier(**parameters)
 
     return clf
 
@@ -143,6 +170,7 @@ def build_extratrees(argv, n_features):
         "n_estimators": int(argv[0]),
         "max_features": int(argv[1]),
         "min_samples_split": int(argv[2]),
+        "n_jobs": 4
     }
 
     clf = ExtraTreesClassifier(**parameters)
@@ -250,6 +278,7 @@ if __name__ == "__main__":
             y_train_proba[test] = clf.predict_proba(X_train[test])[:, 1]
 
     np.savetxt("%s-train.txt" % argv[-1], y_train_proba)
+
 
     # Build predictions on test set
     print "Training..."
